@@ -62,7 +62,7 @@ def create_service_netcat() -> dict[str]:
         "netcat": {
             "container_name": "netcat",
             "image": "nc-client:latest",
-            "entrypoint": "bash /validar-echo-server.sh",
+            "entrypoint": "sh /validar-echo-server.sh",
             "networks": [TESTING_NETWORK_NAME],
             "depends_on": ["server"],
             "volumes": [
