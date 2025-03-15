@@ -49,7 +49,6 @@ def create_client(client_id: int) -> dict[str]:
             "entrypoint": "/client",
             "environment": [
                 f"CLI_ID={client_id}",
-                "CLI_LOG_LEVEL=DEBUG"
             ],
             "networks": [TESTING_NETWORK_NAME],
             "depends_on": ["server"],
