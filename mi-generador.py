@@ -32,7 +32,10 @@ def create_service_server() -> dict[str]:
                 "PYTHONUNBUFFERED=1",
                 "LOGGING_LEVEL=DEBUG"
             ],
-            "networks": [ TESTING_NETWORK_NAME ]
+            "networks": [ TESTING_NETWORK_NAME ],
+            "volumes": [
+                "./server/config.ini:/config.ini"
+            ]
         }
     }
 
