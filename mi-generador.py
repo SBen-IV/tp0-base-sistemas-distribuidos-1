@@ -30,7 +30,6 @@ def create_service_server() -> dict[str]:
             "entrypoint": "python3 /main.py",
             "environment": [
                 "PYTHONUNBUFFERED=1",
-                "LOGGING_LEVEL=DEBUG"
             ],
             "networks": [ TESTING_NETWORK_NAME ],
             "volumes": [
