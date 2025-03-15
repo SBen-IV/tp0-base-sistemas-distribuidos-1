@@ -57,6 +57,20 @@ def create_client(client_id: int) -> dict[str]:
         }
     }
 
+def create_service_netcat() -> dict[str]:
+    return {
+        "netcat": {
+            "container_name": "netcat",
+            "image": "nc-client:latest",
+            "entrypoint": "bash /validar-echo-server.sh",
+            "networks": [TESTING_NETWORK_NAME],
+            "depends_on": ["server"],
+            "volumes": [
+                "./validar-echo-server.sh:/validar-echo-server.sh"
+            ]
+        }
+    }
+
 def create_services(n_clients: int) -> dict[str]:
     services = {}
     server = create_service_server()
@@ -66,6 +80,9 @@ def create_services(n_clients: int) -> dict[str]:
         client = create_client(client_id)
 
         services.update(client)
+
+    netcat = create_service_netcat()
+    services.update(netcat)
 
     return { "services": services }
 
