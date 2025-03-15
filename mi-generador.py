@@ -52,7 +52,10 @@ def create_client(client_id: int) -> dict[str]:
                 "CLI_LOG_LEVEL=DEBUG"
             ],
             "networks": [TESTING_NETWORK_NAME],
-            "depends_on": ["server"]
+            "depends_on": ["server"],
+            "volumes": [
+                "./client/config.yaml:/config.yaml"
+            ]
         }
     }
 

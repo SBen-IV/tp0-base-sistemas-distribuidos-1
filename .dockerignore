@@ -1,4 +1,4 @@
 .dockerignore
 **/Dockerfile
 server/config.ini
-# client/config.yaml
+client/config.yaml
