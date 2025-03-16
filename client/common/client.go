@@ -104,6 +104,7 @@ func (c *Client) StartClientLoop() {
 func (c *Client) Stop() {
 	if c.conn != nil {
 		c.conn.Close()
+		log.Info("Client socket closed")
 	}
 	
 	close(c.stopped)
