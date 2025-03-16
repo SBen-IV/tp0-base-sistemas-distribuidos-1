@@ -24,7 +24,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	conn   net.Conn
-	done chan bool
+	stopped chan bool
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -32,7 +32,7 @@ type Client struct {
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config: config,
-		done: make(chan bool),
+		stopped: make(chan bool),
 	}
 
 	return client
@@ -60,7 +60,7 @@ func (c *Client) StartClientLoop() {
 	// Messages if the message amount threshold has not been surpassed
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		select {
-		case <-c.done:
+		case <-c.stopped:
 			return
 		default:
 			// Create the connection the server in every loop iteration. Send an
@@ -99,5 +99,5 @@ func (c *Client) StartClientLoop() {
 
 func (c *Client) Stop() {
 	c.conn.Close()
-	c.done <- true
+	c.stopped <- true
 }
