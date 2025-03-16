@@ -8,3 +8,4 @@ docker-compose-dev.yaml
 mi-generador.py
 generar-compose.sh
 validar-echo-server.sh
+netcat
