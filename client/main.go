@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/op/go-logging"
@@ -110,6 +112,17 @@ func main() {
 		LoopPeriod:    v.GetDuration("loop.period"),
 	}
 
+	sigs := make(chan os.Signal, 1)
+
+	signal.Notify(sigs, syscall.SIGTERM)
+	
 	client := common.NewClient(clientConfig)
+
+	go func() {
+		<-sigs
+		log.Infof("Received SIGTERM")
+		client.Stop()
+	}()
+
 	client.StartClientLoop()
 }

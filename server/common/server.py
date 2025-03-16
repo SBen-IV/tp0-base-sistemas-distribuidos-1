@@ -10,10 +10,10 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
 
-        signal.signal(signal.SIGTERM, self.__handle_sigterm)
+        signal.signal(signal.SIGTERM, self.__stop)
 
 
-    def __handle_sigterm(self, sig, frame):
+    def __stop(self, sig, frame):
         logging.info("SIGTERM received")
         self._server_socket.close()
 
