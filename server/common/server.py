@@ -10,13 +10,18 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._server_is_running = True
+        self._client_socket = None
 
         signal.signal(signal.SIGTERM, self.__stop)
 
 
     def __stop(self, sig, frame):
         logging.info("SIGTERM received")
+        self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
+        
+        if self._client_socket is not None:
+            self._client_socket.shutdown(socket.SHUT_RDWR)
 
     def run(self):
         """
@@ -31,8 +36,8 @@ class Server:
         # the server
         while self._server_is_running:
             try:
-                client_sock = self.__accept_new_connection()
-                self.__handle_client_connection(client_sock)
+                self._client_socket = self.__accept_new_connection()
+                self.__handle_client_connection(self._client_socket)
             except OSError:
                 logging.info("Server socket closed")
                 self._server_is_running = False
@@ -52,8 +57,9 @@ class Server:
             # TODO: Modify the send to avoid short-writes
             client_sock.send("{}\n".format(msg).encode('utf-8'))
         except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
+            logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
+            logging.info(f"client socket: {client_sock}")
             client_sock.close()
 
     def __accept_new_connection(self):

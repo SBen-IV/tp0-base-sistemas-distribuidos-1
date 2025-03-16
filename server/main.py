@@ -51,6 +51,8 @@ def main():
     server = Server(port, listen_backlog)
     server.run()
 
+    logging.info("Server shutdown complete")
+
 
 def initialize_log(logging_level):
     """
