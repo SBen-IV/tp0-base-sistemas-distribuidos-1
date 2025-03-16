@@ -33,7 +33,7 @@ class Server:
                 client_sock = self.__accept_new_connection()
                 self.__handle_client_connection(client_sock)
         except OSError:
-            logging.info("OSError interrupted server connection")
+            logging.info("Server socket closed")
 
     def __handle_client_connection(self, client_sock):
         """
