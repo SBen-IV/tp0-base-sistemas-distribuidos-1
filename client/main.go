@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -118,11 +119,18 @@ func main() {
 	
 	client := common.NewClient(clientConfig)
 
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	
 	go func() {
 		<-sigs
 		log.Infof("Received SIGTERM")
 		client.Stop()
+		wg.Done()
 	}()
 
 	client.StartClientLoop()
+
+	wg.Wait()
 }
