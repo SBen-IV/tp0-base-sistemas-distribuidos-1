@@ -49,6 +49,7 @@ func (c *Client) createClientSocket() error {
 			c.config.ID,
 			err,
 		)
+		return err
 	}
 	c.conn = conn
 	return nil
@@ -61,10 +62,13 @@ func (c *Client) StartClientLoop() {
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		select {
 		case <-c.stopped:
+			log.Info("Stop received")
 			return
 		default:
 			// Create the connection the server in every loop iteration. Send an
-			c.createClientSocket()
+			if err := c.createClientSocket(); err != nil {
+				return
+			}
 	
 			// TODO: Modify the send to avoid short-write
 			fmt.Fprintf(
@@ -98,6 +102,9 @@ func (c *Client) StartClientLoop() {
 }
 
 func (c *Client) Stop() {
-	c.conn.Close()
-	c.stopped <- true
+	if c.conn != nil {
+		c.conn.Close()
+	}
+	
+	close(c.stopped)
 }

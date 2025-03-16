@@ -114,7 +114,8 @@ func main() {
 	}
 
 	sigs := make(chan os.Signal, 1)
-
+	stopServer := make(chan bool, 1)
+	
 	signal.Notify(sigs, syscall.SIGTERM)
 	
 	client := common.NewClient(clientConfig)
@@ -124,13 +125,25 @@ func main() {
 	wg.Add(1)
 	
 	go func() {
-		<-sigs
-		log.Infof("Received SIGTERM")
+		defer wg.Done()
+
+		select {
+		case <-sigs:
+			log.Infof("SIGTERM received")
+		case <-stopServer:
+			log.Infof("stopServer received")
+		}
+
 		client.Stop()
-		wg.Done()
 	}()
 
 	client.StartClientLoop()
+	
+	close(stopServer)
 
 	wg.Wait()
+
+	close(sigs)
+	
+	log.Info("Client shutdown complete")
 }

@@ -59,7 +59,6 @@ class Server:
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
-            logging.info(f"client socket: {client_sock}")
             client_sock.close()
 
     def __accept_new_connection(self):
