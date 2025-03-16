@@ -28,12 +28,13 @@ class Server:
 
         # TODO: Modify this program to handle signal to graceful shutdown
         # the server
-        try:
-            while True:
+        while True:
+            try:
                 client_sock = self.__accept_new_connection()
                 self.__handle_client_connection(client_sock)
-        except OSError:
-            logging.info("Server socket closed")
+            except OSError:
+                logging.info("Server socket closed")
+                break
 
     def __handle_client_connection(self, client_sock):
         """
