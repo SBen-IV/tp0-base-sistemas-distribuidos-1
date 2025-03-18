@@ -1,0 +1,19 @@
+# Dev files
+**/*.dockerignore
+**/Dockerfile
+.venv
+**/.gitignore
+.python-version
+docker-compose-dev.*
+generar-compose.sh
+Makefile
+mi-generador.py
+pyproject.toml
+README.md
+uv.lock
+
+# Ignore client, config and .data
+client
+vendor
+server/config.ini
+.data
