@@ -224,3 +224,7 @@ sh validar-echo-server.sh
 ```
 
 El script buildea del archivo `Dockerfile` dentro de la carpeta `netcat`. La imagen buildeada instala `netcat` que luego es utilizado por el script `nc.sh` que se monta al correr la imagen.
+
+## Ejercicio 4
+
+Se modificaron cliente y servidor para cerrar los recursos correctamente al recibir la signal `SIGTERM`.
