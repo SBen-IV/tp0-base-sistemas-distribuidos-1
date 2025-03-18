@@ -214,3 +214,13 @@ Luego para ejecutar el ejercicio:
 ## Ejercicio 2
 
 Se agregaron archivos `.dockerignore` en la carpeta de cada servicio para que sólo se buildee cuando haya un cambio en el código y/o dependencias (`vendor`, `go.mod`, `go.sum`) de cada uno respectivamente.
+
+## Ejercicio 3
+
+### Cómo ejecutar
+
+```bash
+sh validar-echo-server.sh
+```
+
+El script buildea del archivo `Dockerfile` dentro de la carpeta `netcat`. La imagen buildeada instala `netcat` que luego es utilizado por el script `nc.sh` que se monta al correr la imagen.

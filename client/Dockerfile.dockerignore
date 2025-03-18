@@ -11,6 +11,8 @@ mi-generador.py
 pyproject.toml
 README.md
 uv.lock
+netcat
+validar-echo-server.sh
 
 # Ignore server, config and .data
 server
