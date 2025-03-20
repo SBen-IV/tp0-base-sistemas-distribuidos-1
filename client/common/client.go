@@ -2,8 +2,6 @@ package common
 
 import (
 	"bufio"
-	"fmt"
-
 	"net"
 	"time"
 
@@ -20,17 +18,25 @@ type ClientConfig struct {
 	LoopPeriod    time.Duration
 }
 
-// Client Entity that encapsulates how
-type Client struct {
+type Client interface {
+	Connect() error
+	Send(buffer []byte, size int) (int, error)
+	Recv() (int, error)
+	Stop()
+}
+
+
+// client Entity that encapsulates how
+type client struct {
 	config ClientConfig
 	conn   net.Conn
 	stopped chan bool
 }
 
-// NewClient Initializes a new client receiving the configuration
+// CreateClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig) *Client {
-	client := &Client{
+func CreateClient(config ClientConfig) *client {
+	client := &client{
 		config: config,
 		stopped: make(chan bool),
 	}
@@ -41,7 +47,7 @@ func NewClient(config ClientConfig) *Client {
 // CreateClientSocket Initializes client socket. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
-func (c *Client) createClientSocket() error {
+func (c *client) Connect() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
 		log.Criticalf(
@@ -55,53 +61,70 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		select {
-		case <-c.stopped:
-			log.Info("Stop received")
-			return
-		default:
-			// Create the connection the server in every loop iteration. Send an
-			if err := c.createClientSocket(); err != nil {
-				return
-			}
-	
-			// TODO: Modify the send to avoid short-write
-			fmt.Fprintf(
-				c.conn,
-				"[CLIENT %v] Message N°%v\n",
-				c.config.ID,
-				msgID,
-			)
-			msg, err := bufio.NewReader(c.conn).ReadString('\n')
-			c.conn.Close()
-	
-			if err != nil {
-				log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-					c.config.ID,
-					err,
-				)
-				return
-			}
-	
-			log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-				c.config.ID,
-				msg,
-			)
-	
-			// Wait a time between sending one message and the next one
-			time.Sleep(c.config.LoopPeriod)
-		}
+func (c *client) Send(buffer []byte, size int) (int, error) {
+	writer := bufio.NewWriterSize(c.conn, size)
+	bytes_sent, err := writer.Write(buffer)
 
+	if err != nil {
+		return bytes_sent, err
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+
+	err = writer.Flush()
+
+	return bytes_sent, err
 }
 
-func (c *Client) Stop() {
+func (c *client) Recv() (int, error) {
+	return 0, nil
+}
+
+// StartClientLoop Send messages to the client until some time threshold is met
+// func (c *client) StartClientLoop() {
+// 	// There is an autoincremental msgID to identify every message sent
+// 	// Messages if the message amount threshold has not been surpassed
+// 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
+// 		select {
+// 		case <-c.stopped:
+// 			log.Info("Stop received")
+// 			return
+// 		default:
+// 			// Create the connection the server in every loop iteration. Send an
+// 			if err := c.createClientSocket(); err != nil {
+// 				return
+// 			}
+	
+// 			// TODO: Modify the send to avoid short-write
+// 			fmt.Fprintf(
+// 				c.conn,
+// 				"[CLIENT %v] Message N°%v\n",
+// 				c.config.ID,
+// 				msgID,
+// 			)
+// 			msg, err := bufio.NewReader(c.conn).ReadString('\n')
+// 			c.conn.Close()
+	
+// 			if err != nil {
+// 				log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+// 					c.config.ID,
+// 					err,
+// 				)
+// 				return
+// 			}
+	
+// 			log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
+// 				c.config.ID,
+// 				msg,
+// 			)
+	
+// 			// Wait a time between sending one message and the next one
+// 			time.Sleep(c.config.LoopPeriod)
+// 		}
+
+// 	}
+// 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+// }
+
+func (c *client) Stop() {
 	if c.conn != nil {
 		c.conn.Close()
 		log.Info("Client socket closed")

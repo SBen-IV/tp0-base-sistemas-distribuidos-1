@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/controller"
 )
 
 var log = logging.MustGetLogger("log")
@@ -118,7 +119,8 @@ func main() {
 	
 	signal.Notify(sigs, syscall.SIGTERM)
 	
-	client := common.NewClient(clientConfig)
+	// client := common.NewClient(clientConfig)
+	agency := controller.NewAgency(clientConfig)
 
 	var wg sync.WaitGroup
 
@@ -134,10 +136,12 @@ func main() {
 			log.Infof("stopServer received")
 		}
 
-		client.Stop()
+		// client.Stop()
+		agency.Close()
 	}()
 
-	client.StartClientLoop()
+	// client.StartClientLoop()
+	agency.Run()
 	
 	close(stopServer)
 
