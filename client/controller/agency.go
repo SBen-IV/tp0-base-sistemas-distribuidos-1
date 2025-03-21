@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"encoding/binary"
+
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
 	"github.com/op/go-logging"
 )
@@ -32,6 +34,21 @@ func (a *Agency) Run() {
 		return
 	}
 
+	a.identifyToLotery()
+
+	// Get Bet
+	bet_in_bytes := a.translator.BetToBytes(a.betLoader.GetBet())
+
+	a.sendBetInfo(bet_in_bytes)
+
+	log.Debugf("Sending %v to server with len %v", bet_in_bytes, len(bet_in_bytes))
+
+	a.sendBet(bet_in_bytes)
+	// Send bet as bytes
+	// Wait for response
+}
+
+func (a *Agency) identifyToLotery() {
 	// Send CLI_ID and wait for response
 	buf, err := a.translator.IDtoBytes(a.id)
 
@@ -47,9 +64,37 @@ func (a *Agency) Run() {
 
 	// Wait for response
 
-	buf = make([]byte, 2)
+	a.waitOK()
+}
 
-	_, err = a.client.Recv(buf, 2)
+func (a *Agency) sendBetInfo(bet_in_bytes []byte) {
+
+	// Count bets
+	// Translate to bytes
+	// Count bytes
+
+	buf := make([]byte, 8)
+
+	binary.BigEndian.PutUint32(buf[0:4], 1) // Send only 1 bet
+	binary.BigEndian.PutUint32(buf[4:8], uint32(len(bet_in_bytes))) // Send bytes amount
+
+	log.Debugf("Sending bet info: %v", buf)
+
+	a.client.Send(buf, 8)
+
+	a.waitOK()
+}
+
+func (a *Agency) sendBet(bet []byte) {
+	a.client.Send(bet, len(bet))
+
+	a.waitOK()
+}
+
+func (a *Agency) waitOK() {
+	buf := make([]byte, 2)
+
+	_, err := a.client.Recv(buf, 2)
 
 	if err != nil {
 		log.Errorf("Error reading from server: %v", err)
@@ -59,16 +104,6 @@ func (a *Agency) Run() {
 	resp, _ := a.translator.OKtoString(buf)
 
 	log.Debugf("Got response from server: %s", resp)
-
-	// Get Bet
-	// bet := a.betLoader.GetBets()
-
-	// Count bets
-	// Translate to bytes
-	// Count bytes
-	// Send bet as bytes
-	// Wait for response
-
 }
 
 func (a *Agency) Close() error {

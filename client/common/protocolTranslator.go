@@ -2,7 +2,10 @@ package common
 
 import (
 	"encoding/binary"
+	"fmt"
 	"strconv"
+
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/model"
 )
 
 type ProtocolTranslator struct {}
@@ -26,6 +29,14 @@ func (p *ProtocolTranslator) IDtoBytes(id string) ([]byte, error) {
 	binary.BigEndian.PutUint16(buf, uint16(message_id))
 
 	return buf, nil
+}
+
+func (p *ProtocolTranslator) BetToBytes(bet *model.Bet) []byte {
+	message := fmt.Sprintf("%s;%s;%s;%s;%d;", bet.FirstName, bet.LastName, bet.Document, bet.Birthday, bet.Number)
+
+	buf := []byte(message)
+
+	return buf
 }
 
 func (p *ProtocolTranslator) OKtoString(buf []byte) (string, error) {

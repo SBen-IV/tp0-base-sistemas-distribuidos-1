@@ -48,6 +48,11 @@ def create_client(client_id: int) -> dict[str]:
             "entrypoint": "/client",
             "environment": [
                 f"CLI_ID={client_id}",
+                "NOMBRE=Santiago Lionel",
+                "APELLIDO=Lorca",
+                "DOCUMENTO=30904465",
+                "NACIMIENTO=1999-03-17",
+                "NUMERO=7574"
             ],
             "networks": [TESTING_NETWORK_NAME],
             "depends_on": ["server"],
