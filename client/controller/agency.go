@@ -37,15 +37,18 @@ func (a *Agency) Run() {
 	a.identifyToLotery()
 
 	// Get Bet
-	bet_in_bytes := a.translator.BetToBytes(a.betLoader.GetBet())
+	bet := a.betLoader.GetBet()
+	bet_in_bytes := a.translator.BetToBytes(bet)
 
 	a.sendBetInfo(bet_in_bytes)
 
 	log.Debugf("Sending %v to server with len %v", bet_in_bytes, len(bet_in_bytes))
 
-	a.sendBet(bet_in_bytes)
 	// Send bet as bytes
 	// Wait for response
+	a.sendBet(bet_in_bytes)
+
+	log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s", bet.Document, bet.Number)
 }
 
 func (a *Agency) identifyToLotery() {
