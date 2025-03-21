@@ -21,7 +21,7 @@ type ClientConfig struct {
 type Client interface {
 	Connect() error
 	Send(buffer []byte, size int) (int, error)
-	Recv() (int, error)
+	Recv(buffer []byte, size int) (int, error)
 	Stop()
 }
 
@@ -74,8 +74,8 @@ func (c *client) Send(buffer []byte, size int) (int, error) {
 	return bytes_sent, err
 }
 
-func (c *client) Recv() (int, error) {
-	return 0, nil
+func (c *client) Recv(buffer []byte, size int) (int, error) {
+	return bufio.NewReaderSize(c.conn, size).Read(buffer)
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met

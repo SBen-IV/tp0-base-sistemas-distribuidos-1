@@ -44,6 +44,22 @@ func (a *Agency) Run() {
 
 	log.Debugf("Bytes sent: %d bytes", bytes_sent)
 	log.Error("Error %v", err)
+
+	// Wait for response
+
+	buf = make([]byte, 2)
+
+	_, err = a.client.Recv(buf, 2)
+
+	if err != nil {
+		log.Errorf("Error reading from server: %v", err)
+		return
+	}
+
+	resp, _ := a.translator.OKtoString(buf)
+
+	log.Debugf("Got response from server: %s", resp)
+
 	// Get Bet
 	// bet := a.betLoader.GetBets()
 

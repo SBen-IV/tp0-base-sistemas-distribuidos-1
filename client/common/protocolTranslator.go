@@ -27,3 +27,7 @@ func (p *ProtocolTranslator) IDtoBytes(id string) ([]byte, error) {
 
 	return buf, nil
 }
+
+func (p *ProtocolTranslator) OKtoString(buf []byte) (string, error) {
+	return string(buf), nil
+}

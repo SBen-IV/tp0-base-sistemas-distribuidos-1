@@ -2,6 +2,9 @@ import socket
 import logging
 import signal
 
+from common.client_handler import ClientHandler
+from common.client_socket import ClientSocket
+
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -11,6 +14,7 @@ class Server:
         self._server_socket.listen(listen_backlog)
         self._server_is_running = True
         self._client_socket = None
+        self._client_handler = None
 
         signal.signal(signal.SIGTERM, self.__stop)
 
@@ -20,8 +24,8 @@ class Server:
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
         
-        if self._client_socket is not None:
-            self._client_socket.shutdown(socket.SHUT_RDWR)
+        if self._client_handler is not None:
+            self._client_handler.stop()
 
     def run(self):
         """
@@ -36,8 +40,12 @@ class Server:
         # the server
         while self._server_is_running:
             try:
-                self._client_socket = self.__accept_new_connection()
-                self.__handle_client_connection(self._client_socket)
+                # Create a new ClientSocket()
+                # Pass it to a ClientHandler(client_socket)
+
+                client_socket = self.__accept_new_connection()
+                self._client_handler = ClientHandler(ClientSocket(client_socket))
+                self._client_handler.run()
             except OSError:
                 logging.info("Server socket closed")
                 self._server_is_running = False
@@ -57,7 +65,7 @@ class Server:
             addr = client_sock.getpeername()
             logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
             # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+            client_sock.send("{}\n".format("OK").encode('utf-8'))
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
