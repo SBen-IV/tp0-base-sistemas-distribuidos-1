@@ -4,7 +4,14 @@ from common.client_socket import ClientSocket
 from common.protocol_translator import ProtocolTranslator
 from common.bet_info import BetInfo
 from common.utils import Bet, store_bets
+
+from protocol.agency_id import AGENCY_ID_MESSAGE_LEN, AgencyID
+from protocol.bet_info import BET_INFO_MESSAGE_LEN, BetInfoProtocol
+from protocol.bet import BetProtocol
+from protocol.ok_message import OkMessage
+
 from enum import Enum
+
 
 class ProtocolState(Enum):
     AgencyIdentification = 1
@@ -31,53 +38,60 @@ class ClientHandler():
                     bet = self._manage_bet(bet_info)
                     # Send OK and close the client
                     # Store bet
-                    bets = [bet]
-                    store_bets(bets=bets)
+                    store_bets(bets=[bet])
                     logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
                     self._state = ProtocolState.Fin
 
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
+        except Exception as e:
+            logging.error(f"action: receive_message | result: fail | exception: {e}")
         finally:
             self._client_socket.close()
 
     def _manage_client_id(self):
-        # TODO: Modify the receive to avoid short-reads
-        msg = self._client_socket.recv(2)
-        logging.debug(f"Received message {msg} with length {len(msg)}")
+        msg = self._recv_msg(AGENCY_ID_MESSAGE_LEN)
+
+        agency_id = AgencyID.from_bytes(msg)
         
-        client_id = self._translator.translate_cli_id(msg)
         addr = self._client_socket.getpeername()
-        logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {client_id}')
+        logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {agency_id}')
         
-        # TODO: Modify the send to avoid short-writes
         self._send_ok()
 
-        self._client_id = client_id
+        self._agency_id = agency_id
 
 
     def _manage_bet_info(self) -> BetInfo:
-        msg = self._client_socket.recv(8)
-        logging.debug(f"Received message {msg} with length {len(msg)}")
+        msg = self._recv_msg(BET_INFO_MESSAGE_LEN)
 
-        bet_info = self._translator.translate_bet_info(msg)
+        bet_info = BetInfoProtocol.from_bytes(msg)
 
         self._send_ok()
 
         return bet_info
     
     def _manage_bet(self, bet_info: BetInfo) -> Bet:
-        msg = self._client_socket.recv(bet_info._bytes_amount)
-        logging.debug(f"Received message {msg} with length {len(msg)}")
+        msg = self._recv_msg(bet_info._bytes_amount)
 
-        bet = self._translator.translate_bet(msg, self._client_id)
+        bet = BetProtocol.from_bytes(msg, self._agency_id)
 
         self._send_ok()
 
         return bet
     
+    def _recv_msg(self, bytes_amount):
+        # TODO: Modify the receive to avoid short-reads
+        msg = self._client_socket.recv(bytes_amount)
+        logging.debug(f"Received message {msg} with length {len(msg)}")
+
+        return msg
+
     def _send_ok(self):
-        self._client_socket.send("OK".encode("utf-8"))
+        ok = OkMessage()
+        # TODO: Modify the send to avoid short-writes
+        # Python doesn't have a 'size' to specify the amount of bytes sent?
+        self._client_socket.send(ok.encode())
 
     def stop(self):
         self._client_socket.close()
