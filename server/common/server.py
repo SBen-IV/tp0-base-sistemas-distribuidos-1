@@ -42,7 +42,6 @@ class Server:
             try:
                 # Create a new ClientSocket()
                 # Pass it to a ClientHandler(client_socket)
-
                 client_socket = self.__accept_new_connection()
                 self._client_handler = ClientHandler(ClientSocket(client_socket))
                 self._client_handler.run()

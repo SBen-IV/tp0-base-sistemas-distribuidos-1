@@ -13,7 +13,7 @@ var log = logging.MustGetLogger("log")
 type ProtocolState int
 
 const (
-	ConnectToLotery ProtocolState = iota
+	ConnectToNationalLottery ProtocolState = iota
 	IdentifyToNationalLottery
 	SendBets
 )
@@ -45,7 +45,7 @@ func (a *Agency) Run() {
  			isRunning = false
 		default:
 			switch a.state {
-			case ConnectToLotery:
+			case ConnectToNationalLottery:
 				if err := a.client.Connect(); err != nil {
 					log.Errorf("Could not connect to server: %v", err)
 					isRunning = false
