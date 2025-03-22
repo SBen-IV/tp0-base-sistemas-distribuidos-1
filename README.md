@@ -243,6 +243,8 @@ El protocolo enviará mensaje de tamaño variable del lado del cliente. Inicialm
 +-------+
 ```
 
+<!-- BET 3 bytes -->
+
 Luego se mandan 8 bytes con la cantidad de apuestas (`BETS_AMOUNT`) y la cantidad de bytes que se enviarán (`BYTES_AMOUNT`)
 
 ```
@@ -267,6 +269,8 @@ Para enviar la apuesta en sí se concatenan cada uno de los componentes de la ap
 
 <!-- 1;1;8;10;4; = 5 (separators) + 1 + 1 + 8 + 10 + 4 = 29 -->
 <!-- 8000 bytes (máx) / 29 = 275.86 => 275 bets max in a batch -->
+
+<!-- FIN 3 bytes -->
 
 Por el lado del servidor siempre va a responder con un `OK` a cada uno de los mensajes recibidos.
 
