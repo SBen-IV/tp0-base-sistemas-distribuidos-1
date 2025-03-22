@@ -30,7 +30,6 @@ type Client interface {
 type client struct {
 	config ClientConfig
 	conn   net.Conn
-	stopped chan bool
 }
 
 // CreateClient Initializes a new client receiving the configuration
@@ -38,7 +37,6 @@ type client struct {
 func CreateClient(config ClientConfig) *client {
 	client := &client{
 		config: config,
-		stopped: make(chan bool),
 	}
 
 	return client
@@ -62,20 +60,36 @@ func (c *client) Connect() error {
 }
 
 func (c *client) Send(buffer []byte, size int) (int, error) {
-	writer := bufio.NewWriterSize(c.conn, size)
-	bytes_sent, err := writer.Write(buffer)
+	var total_bytes_sent int = 0
 
-	if err != nil {
-		return bytes_sent, err
+	for total_bytes_sent < size {
+		writer := bufio.NewWriterSize(c.conn, (size - total_bytes_sent))
+		bytes_sent, err := writer.Write(buffer[total_bytes_sent:])
+		
+		if err != nil {
+			return total_bytes_sent, err
+		}
+
+		if err := writer.Flush(); err != nil {
+			return total_bytes_sent, err
+		}
+
+		total_bytes_sent += bytes_sent
 	}
 
-	err = writer.Flush()
-
-	return bytes_sent, err
+	return total_bytes_sent, nil
 }
 
 func (c *client) Recv(buffer []byte, size int) (int, error) {
 	return bufio.NewReaderSize(c.conn, size).Read(buffer)
+}
+
+
+func (c *client) Stop() {
+	if c.conn != nil {
+		c.conn.Close()
+		log.Info("Client socket closed")
+	}
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
@@ -123,12 +137,3 @@ func (c *client) Recv(buffer []byte, size int) (int, error) {
 // 	}
 // 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 // }
-
-func (c *client) Stop() {
-	if c.conn != nil {
-		c.conn.Close()
-		log.Info("Client socket closed")
-	}
-	
-	close(c.stopped)
-}

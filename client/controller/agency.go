@@ -1,19 +1,29 @@
 package controller
 
 import (
-	"encoding/binary"
+	"fmt"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/protocol"
 	"github.com/op/go-logging"
 )
 
 var log = logging.MustGetLogger("log")
 
+type ProtocolState int
+
+const (
+	ConnectToLotery ProtocolState = iota
+	IdentifyToNationalLottery
+	SendBets
+)
+
 type Agency struct {
 	betLoader common.BetLoader
 	client common.Client
 	id string
-	translator *common.ProtocolTranslator
+	stopped chan bool
+	state ProtocolState
 }
 
 func NewAgency(config common.ClientConfig) *Agency {
@@ -21,97 +31,141 @@ func NewAgency(config common.ClientConfig) *Agency {
 		betLoader: common.CreateBetLoader(),
 		client: common.CreateClient(config),
 		id: config.ID,
-		translator: common.NewProtocolTranslator(),
+		stopped: make(chan bool, 1),
 	}
 }
 
 func (a *Agency) Run() {
-	a.betLoader.Init()
-	err := a.client.Connect()
+	var isRunning bool = true
+
+	for isRunning {
+		select {
+		case <-a.stopped:
+			log.Info("Stop received")
+ 			isRunning = false
+		default:
+			switch a.state {
+			case ConnectToLotery:
+				if err := a.client.Connect(); err != nil {
+					log.Errorf("Could not connect to server: %v", err)
+					isRunning = false
+				} else {
+					a.state = IdentifyToNationalLottery
+				}
+			case IdentifyToNationalLottery:
+				if err := a.identifyToNationalLottery(); err != nil {
+					isRunning = false
+				} else {
+					a.state = SendBets
+				}
+			case SendBets:
+				if err := a.sendBets(); err != nil {
+					log.Errorf("Could not send bet to server: %v", err)
+				}
+				
+				isRunning = false
+			}
+		}
+	}
+}
+
+func (a *Agency) identifyToNationalLottery() error {
+	// Send CLI_ID and wait for response
+	buf, bytesAmount, err := protocol.NewAgencyID(a.id).Encode()
 
 	if err != nil {
-		log.Errorf("Could not connect to server: %v", err)
-		return
+		log.Errorf("Error creating AgencyID: %v", err)
+		return err
 	}
 
-	a.identifyToLotery()
+	bytesSent, err := a.client.Send(buf, bytesAmount)
 
+	log.Debugf("Bytes sent: %d bytes", bytesSent)
+	if err != nil {
+		log.Errorf("Error sending bytes: %v", err)
+		return err
+	}
+
+	// Wait for response
+
+	return a.waitOK()
+}
+
+func (a *Agency) sendBets() error {
 	// Get Bet
 	bet := a.betLoader.GetBet()
-	bet_in_bytes := a.translator.BetToBytes(bet)
+	betProtocol := protocol.NewBet(bet)
 
-	a.sendBetInfo(bet_in_bytes)
+	buf, bytesAmount := betProtocol.Encode()
 
-	log.Debugf("Sending %v to server with len %v", bet_in_bytes, len(bet_in_bytes))
+	betsInfo := protocol.NewBetInfo(1, int32(bytesAmount))
 
-	// Send bet as bytes
-	// Wait for response
-	a.sendBet(bet_in_bytes)
-
-	log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %s", bet.Document, bet.Number)
-}
-
-func (a *Agency) identifyToLotery() {
-	// Send CLI_ID and wait for response
-	buf, err := a.translator.IDtoBytes(a.id)
-
-	if err != nil {
-		log.Errorf("Error translating ID: %v", err)
-		return
+	if err := a.sendBetInfo(betsInfo); err != nil {
+		return err
 	}
 
-	bytes_sent, err := a.client.Send(buf, len(buf))
+	log.Debugf("Sending %v to server with len %v", betProtocol, bytesAmount)
 
-	log.Debugf("Bytes sent: %d bytes", bytes_sent)
-	log.Error("Error %v", err)
+	// Send bet as bytes and wait for response
+	if err := a.sendBet(buf, bytesAmount); err != nil {
+		return err
+	}
 
-	// Wait for response
+	log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %d", bet.Document, bet.Number)
 
-	a.waitOK()
+	return nil
 }
 
-func (a *Agency) sendBetInfo(bet_in_bytes []byte) {
+func (a *Agency) sendBetInfo(betsInfo *protocol.BetInfo) error {
+	buf, bytes_amount, err := betsInfo.Encode()
 
-	// Count bets
-	// Translate to bytes
-	// Count bytes
-
-	buf := make([]byte, 8)
-
-	binary.BigEndian.PutUint32(buf[0:4], 1) // Send only 1 bet
-	binary.BigEndian.PutUint32(buf[4:8], uint32(len(bet_in_bytes))) // Send bytes amount
+	if err != nil {
+		return err
+	}
 
 	log.Debugf("Sending bet info: %v", buf)
 
-	a.client.Send(buf, 8)
+	a.client.Send(buf, bytes_amount)
 
-	a.waitOK()
+	return a.waitOK()
 }
 
-func (a *Agency) sendBet(bet []byte) {
-	a.client.Send(bet, len(bet))
+func (a *Agency) sendBet(buf []byte, bytesAmount int) error {
+	_, err := a.client.Send(buf, bytesAmount)
 
-	a.waitOK()
+	if err != nil {
+		return err
+	}
+
+	return a.waitOK()
 }
 
-func (a *Agency) waitOK() {
-	buf := make([]byte, 2)
+func (a *Agency) waitOK() error {
+	buf, bytesAmount := protocol.NewMessageBuf()
 
-	_, err := a.client.Recv(buf, 2)
+	bytesRecv, err := a.client.Recv(buf, bytesAmount)
 
 	if err != nil {
 		log.Errorf("Error reading from server: %v", err)
-		return
+		return err
 	}
 
-	resp, _ := a.translator.OKtoString(buf)
+	message := protocol.NewServerMessageBuild(buf, bytesRecv)
 
-	log.Debugf("Got response from server: %s", resp)
+	if message != protocol.Ok {
+		log.Error("Error building message from server: %v", message)
+		return fmt.Errorf("error building message from server: %v", buf)
+	}
+
+	log.Debugf("Got response from server: %s", message)
+
+	return nil
 }
 
 func (a *Agency) Close() error {
-	a.betLoader.Destroy()
 	a.client.Stop()
+
+	close(a.stopped)
 	
 	return nil
 }
