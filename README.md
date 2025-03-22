@@ -228,3 +228,56 @@ El script buildea del archivo `Dockerfile` dentro de la carpeta `netcat`. La ima
 ## Ejercicio 4
 
 Se modificaron cliente y servidor para cerrar los recursos correctamente al recibir la signal `SIGTERM`.
+
+## Ejercicio 5
+
+### Protocolo
+
+El protocolo enviará mensaje de tamaño variable del lado del cliente. Inicialmente el cliente se conecta al servidor y le manda su CLI_ID en un mensaje de 2 bytes
+
+```
++-------+
+|2 bytes|
+|-------|
+|CLI_ID |
++-------+
+```
+
+Luego se mandan 8 bytes con la cantidad de apuestas (`BETS_AMOUNT`) y la cantidad de bytes que se enviarán (`BYTES_AMOUNT`)
+
+```
++-------------------------+
+|  4 bytes  |   4 bytes   |
+|-----------|-------------|
+|BETS_AMOUNT| BYTES_AMOUNT|
++-------------------------+
+```
+
+`BETS_AMOUNT` para este ejercicio es siempre 1 y no se utiliza. En próximos ejercicios se planea usar para chequear que la cantidad de apuestas recibidas sea la indicada.
+
+Para enviar la apuesta en sí se concatenan cada uno de los componentes de la apuesta separados con `;` como delimitador
+
+```
++----------------------------------------------+
+|              (`BYTES_AMOUNT`) bytes          |
+|----------------------------------------------|
+|FIRST_NAME;LAST_NAME;DOCUMENT;BIRTHDAY;NUMBER;|
++----------------------------------------------+
+```
+
+<!-- 1;1;8;10;4; = 5 (separators) + 1 + 1 + 8 + 10 + 4 = 29 -->
+<!-- 8000 bytes (máx) / 29 = 275.86 => 275 bets max in a batch -->
+
+Por el lado del servidor siempre va a responder con un `OK` a cada uno de los mensajes recibidos.
+
+```
++-------+
+|2 bytes|
+|-------|
+|  OK   |
++-------+
+```
+
+<!-- NO # NoOKProtocolMessage -->
+
+Luego que el cliente recibe el `OK` de la apuesta enviada, cierra la conexión con el servidor.
