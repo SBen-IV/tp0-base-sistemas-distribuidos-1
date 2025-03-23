@@ -41,6 +41,7 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
+	v.BindEnv("bets", "filepath")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -85,12 +86,13 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | bets_filepath: %s",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
+		v.GetString("bets.filepath"),
 	)
 }
 
@@ -112,6 +114,7 @@ func main() {
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
+		BetsFilePath:  v.GetString("bets.filepath"),
 	}
 
 	sigs := make(chan os.Signal, 1)
@@ -119,7 +122,7 @@ func main() {
 	
 	signal.Notify(sigs, syscall.SIGTERM)
 	
-	agency := controller.NewAgency(common.CreateBetLoader(), common.CreateClient(clientConfig), clientConfig)
+	agency := controller.NewAgency(common.CreateBetLoader(clientConfig.BetsFilePath), common.CreateClient(clientConfig), clientConfig)
 
 	var wg sync.WaitGroup
 

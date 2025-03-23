@@ -8,14 +8,34 @@ import (
 )
 
 type BetLoader interface {
+	Init() error
 	GetBet() *model.Bet
+	Destroy()
 }
 
 // Reads bet from env variables
-type betLoader struct {}
+type betLoader struct {
+	filename string
+	file *os.File
+}
 
-func CreateBetLoader() *betLoader {
-	return &betLoader{}
+func CreateBetLoader(filename string) *betLoader {
+	return &betLoader{
+		filename: filename,
+		file: nil,
+	}
+}
+
+func (b *betLoader) Init() error {
+	file, err := os.Open(b.filename)
+
+	if err != nil {
+		return err
+	}
+
+	b.file = file
+
+	return nil
 }
 
 func (b *betLoader) GetBet() *model.Bet {
@@ -33,4 +53,10 @@ func (b *betLoader) GetBet() *model.Bet {
 	}
 
 	return model.NewBet(firstName, lastName, document, birthday, int32(number))
+}
+
+func (b *betLoader) Destroy() {
+	if b.file != nil {
+		b.file.Close()
+	}
 }
