@@ -17,7 +17,10 @@ const (
 	ConnectToNationalLottery ProtocolState = iota
 	IdentifyToNationalLottery
 	SendBets
+	FinBets
 )
+
+const EMPTY_BETS = 0
 
 // This class acts as a controller for communication and model
 type Agency struct {
@@ -26,6 +29,7 @@ type Agency struct {
 	id string
 	stopped chan bool
 	state ProtocolState
+	batchMaxAmount int
 }
 
 func NewAgency(betLoader common.BetLoader, client common.Client, config common.ClientConfig) *Agency {
@@ -34,6 +38,7 @@ func NewAgency(betLoader common.BetLoader, client common.Client, config common.C
 		client: client,
 		id: config.ID,
 		stopped: make(chan bool, 1),
+		batchMaxAmount: config.BatchMaxAmount,
 	}
 }
 
@@ -61,12 +66,19 @@ func (a *Agency) Run() {
 					a.state = SendBets
 				}
 			case SendBets:
-				if err := a.sendBets(); err != nil {
-					log.Errorf("Could not send bet to server: %v", err)
+				if err := a.manageBets(); err != nil {
+					switch err.(type) {
+					case *common.NoMoreBets:
+						log.Debug("No more bets to send")
+						a.state = FinBets
+					default:
+						log.Errorf("Could not send bets to server: %v", err)
+					}
 				}
-				
+			case FinBets:
 				isRunning = false
 			}
+
 		}
 	}
 }
@@ -93,32 +105,39 @@ func (a *Agency) identifyToNationalLottery() error {
 	return a.waitOK()
 }
 
-func (a *Agency) sendBets() error {
-	// Get Bet
-	bet := a.betLoader.GetBet()
-	betProtocol := protocol.NewBet(bet)
+func (a *Agency) manageBets() error {
+	bets, err := a.betLoader.GetBets(a.batchMaxAmount)
+	
+	if err != nil {
+	  return err
+	}
+	
+	betsAmount := len(bets)
 
-	buf, bytesAmount := betProtocol.Encode()
-
-	betsInfo := protocol.NewBetInfo(1, int32(bytesAmount))
-
-	if err := a.sendBetInfo(betsInfo); err != nil {
-		return err
+	if betsAmount == EMPTY_BETS {
+	  	return &common.NoMoreBets{}
 	}
 
-	log.Debugf("Sending %v to server with len %v", betProtocol, bytesAmount)
+	betsProtocol := protocol.NewBets(bets)
+	buf, bytesAmount := betsProtocol.Encode()
+	betsInfo := protocol.NewBetInfo(int32(betsAmount), int32(bytesAmount))
 
-	// Send bet as bytes and wait for response
-	if err := a.sendBet(buf, bytesAmount); err != nil {
+	if err := a.sendBetsInfo(betsInfo); err != nil {
 		return err
 	}
-
-	log.Infof("action: apuesta_enviada | result: success | dni: %s | numero: %d", bet.Document, bet.Number)
+	
+	log.Debugf("Sending %v to server with len %v", betsAmount, bytesAmount)
+	
+	if err := a.sendBets(buf, bytesAmount); err != nil {
+		return err
+	}
+	
+	log.Infof("action: apuesta_enviada | result: success | cantidad: %v", betsAmount)
 
 	return nil
 }
 
-func (a *Agency) sendBetInfo(betsInfo *protocol.BetInfo) error {
+func (a *Agency) sendBetsInfo(betsInfo *protocol.BetInfo) error {
 	buf, bytes_amount, err := betsInfo.Encode()
 
 	if err != nil {
@@ -132,7 +151,7 @@ func (a *Agency) sendBetInfo(betsInfo *protocol.BetInfo) error {
 	return a.waitOK()
 }
 
-func (a *Agency) sendBet(buf []byte, bytesAmount int) error {
+func (a *Agency) sendBets(buf []byte, bytesAmount int) error {
 	_, err := a.client.Send(buf, bytesAmount)
 
 	if err != nil {

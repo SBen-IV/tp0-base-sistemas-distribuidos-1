@@ -1,8 +1,11 @@
 package common
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/model"
 )
@@ -10,6 +13,7 @@ import (
 type BetLoader interface {
 	Init() error
 	GetBet() *model.Bet
+	GetBets(maxAmount int) ([]model.Bet, error)
 	Destroy()
 }
 
@@ -55,8 +59,51 @@ func (b *betLoader) GetBet() *model.Bet {
 	return model.NewBet(firstName, lastName, document, birthday, int32(number))
 }
 
+func (b *betLoader) GetBets(maxAmount int) ([]model.Bet, error) {
+	bets := []model.Bet{}
+
+	scanner := bufio.NewScanner(b.file)
+
+	for i := 0; i < maxAmount; i++ {
+		if !scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				return nil, err
+			}
+			
+			break
+		}
+
+		// Example
+		// Santiago Lionel,Lorca,30904465,1999-03-17,2201
+		// line := scanner.Text()
+		// parsedLine, err := parseLine(line)
+
+		// if err != nil {
+		// 	return nil, err
+		// }
+
+		// bet := getBet(parsedLine)
+		// bet := strings.Split(, ",")
+		// bets = append(bets, bet)
+	}
+
+
+
+	return bets, nil
+}
+
 func (b *betLoader) Destroy() {
 	if b.file != nil {
 		b.file.Close()
 	}
+}
+
+func parseLine(line string) ([]string, error) {
+	parsedLine := strings.Split(line, ",")
+
+	if len(parsedLine) < 5 {
+		return nil, fmt.Errorf("Malformed line")
+	}
+
+	return parsedLine, nil
 }
