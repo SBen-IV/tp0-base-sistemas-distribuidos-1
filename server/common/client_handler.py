@@ -1,7 +1,6 @@
 import logging
 
 from common.client_socket import ClientSocket
-from common.protocol_translator import ProtocolTranslator
 from common.bet_info import BetInfo
 from common.utils import Bet, store_bets
 
@@ -21,7 +20,6 @@ class ProtocolState(Enum):
 class ClientHandler():
     def __init__(self, client_socket: ClientSocket):
         self._client_socket = client_socket
-        self._translator = ProtocolTranslator()
         self._state = ProtocolState.AgencyIdentification
 
     def run(self):
