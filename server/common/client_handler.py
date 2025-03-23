@@ -91,7 +91,8 @@ class ClientHandler():
         ok = OkMessage()
         # TODO: Modify the send to avoid short-writes
         # Python doesn't have a 'size' to specify the amount of bytes sent?
-        self._client_socket.send(ok.encode())
+        buf, size = ok.encode()
+        self._client_socket.send(buf, size)
 
     def stop(self):
         self._client_socket.close()

@@ -3,4 +3,7 @@ class OkMessage():
         self._data = "OK"
 
     def encode(self):
-        return self._data.encode("utf-8")
+        data_as_bytes = self._data.encode("utf-8")
+        data_len = len(data_as_bytes)
+
+        return data_as_bytes, data_len
