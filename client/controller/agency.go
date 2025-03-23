@@ -17,7 +17,6 @@ const (
 	ConnectToNationalLottery ProtocolState = iota
 	IdentifyToNationalLottery
 	SendBets
-	FinBets
 )
 
 const EMPTY_BETS = 0
@@ -67,16 +66,8 @@ func (a *Agency) Run() {
 				}
 			case SendBets:
 				if err := a.manageBets(); err != nil {
-					switch err.(type) {
-					case *common.NoMoreBets:
-						log.Debug("No more bets to send")
-						a.state = FinBets
-					default:
-						log.Errorf("Could not send bets to server: %v", err)
-					}
+					isRunning = false
 				}
-			case FinBets:
-				isRunning = false
 			}
 
 		}

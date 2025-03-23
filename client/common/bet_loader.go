@@ -69,25 +69,25 @@ func (b *betLoader) GetBets(maxAmount int) ([]model.Bet, error) {
 			if err := scanner.Err(); err != nil {
 				return nil, err
 			}
-			
+
 			break
 		}
 
-		// Example
-		// Santiago Lionel,Lorca,30904465,1999-03-17,2201
-		// line := scanner.Text()
-		// parsedLine, err := parseLine(line)
+		line := scanner.Text()
+		parsedLine, err := b.parseLine(line)
 
-		// if err != nil {
-		// 	return nil, err
-		// }
+		if err != nil {
+			return nil, err
+		}
 
-		// bet := getBet(parsedLine)
-		// bet := strings.Split(, ",")
-		// bets = append(bets, bet)
+		bet, err := b.getBet(parsedLine)
+
+		if err != nil {
+			return nil, err
+		}
+		
+		bets = append(bets, *bet)
 	}
-
-
 
 	return bets, nil
 }
@@ -98,12 +98,39 @@ func (b *betLoader) Destroy() {
 	}
 }
 
-func parseLine(line string) ([]string, error) {
-	parsedLine := strings.Split(line, ",")
+func (b *betLoader) parseLine(line string) ([]string, error) {
+	const COMPONENTS_LEN = 5
+	const COMPONENT_SEPARATOR = ","
+	// Example line
+	// Santiago Lionel,Lorca,30904465,1999-03-17,2201
+	parsedLine := strings.Split(line, COMPONENT_SEPARATOR)
 
-	if len(parsedLine) < 5 {
-		return nil, fmt.Errorf("Malformed line")
+	if len(parsedLine) < COMPONENTS_LEN {
+		return nil, fmt.Errorf("malformed line")
 	}
 
 	return parsedLine, nil
+}
+
+func (b *betLoader) getBet(parsedLine []string) (*model.Bet, error) {
+	const FIRST_NAME_POS = 0
+	const LAST_NAME_POS = 1
+	const DOCUMENT_POS = 2
+	const BIRTHDAY_POS = 3
+	const NUMBER_POS = 4
+
+	firstName := parsedLine[FIRST_NAME_POS]
+	lastName := parsedLine[LAST_NAME_POS]
+	document := parsedLine[DOCUMENT_POS]
+	birthday := parsedLine[BIRTHDAY_POS]
+	numberStr := parsedLine[NUMBER_POS]
+
+	number, err := strconv.ParseInt(numberStr, 10, 32)
+
+	if err != nil {
+		// Should never return error
+		return nil, err
+	}
+
+	return model.NewBet(firstName, lastName, document, birthday, int32(number)), nil
 }
