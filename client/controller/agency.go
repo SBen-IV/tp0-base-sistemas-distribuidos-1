@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/model"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/protocol"
 	"github.com/op/go-logging"
 )
@@ -17,6 +18,7 @@ const (
 	ConnectToNationalLottery ProtocolState = iota
 	IdentifyToNationalLottery
 	SendBets
+	EndConnection
 )
 
 const EMPTY_BETS = 0
@@ -42,8 +44,11 @@ func NewAgency(betLoader common.BetLoader, client common.Client, config common.C
 }
 
 func (a *Agency) Run() {
-	a.betLoader.Init()
-	
+	if err := a.betLoader.Init(); err != nil {
+		log.Errorf("Error initializing bet loader: %v", err)
+		return 
+	}
+
 	var isRunning bool = true
 
 	for isRunning {
@@ -69,8 +74,20 @@ func (a *Agency) Run() {
 			case SendBets:
 				if err := a.manageBets(); err != nil {
 					log.Errorf("Could not manage bets: %v", err)
-					isRunning = false
+					switch err.(type) {
+					case *common.NoMoreBets:
+						a.state = EndConnection
+					default:
+						isRunning = false
+					}
 				}
+
+			case EndConnection:
+				if err := a.sendOperation(model.FinOp); err != nil {
+					log.Errorf("Could not end connection: %v", err)
+				}
+
+				isRunning = false
 			}
 
 		}
@@ -112,6 +129,10 @@ func (a *Agency) manageBets() error {
 		return &common.NoMoreBets{}
 	}
 
+	if err := a.sendOperation(model.BetOp); err != nil {
+		return err
+	}
+
 	betsProtocol := protocol.NewBets(bets)
 	buf, bytesAmount := betsProtocol.Encode()
 	betsInfo := protocol.NewBetInfo(int32(betsAmount), int32(bytesAmount))
@@ -120,7 +141,7 @@ func (a *Agency) manageBets() error {
 		return err
 	}
 	
-	log.Debugf("Sending %v to server with len %v", betsAmount, bytesAmount)
+	log.Debugf("Sending %v bets to server with len %v", betsAmount, bytesAmount)
 	
 	if err := a.sendBets(buf, bytesAmount); err != nil {
 		return err
@@ -129,6 +150,23 @@ func (a *Agency) manageBets() error {
 	log.Infof("action: apuesta_enviada | result: success | cantidad: %v", betsAmount)
 
 	return nil
+}
+
+func (a *Agency) sendOperation(op model.Operation) error {
+	buf, bytesAmount := protocol.NewOperation(op).Encode()
+
+	bytesSent, err := a.client.Send(buf, bytesAmount)
+
+	log.Debugf("Sent operation %v with len %v", op, bytesSent)
+
+	if err != nil {
+		log.Errorf("Error sending bytes: %v", err)
+		return err
+	}
+
+	// Wait for response
+
+	return a.waitOK()
 }
 
 func (a *Agency) sendBetsInfo(betsInfo *protocol.BetInfo) error {

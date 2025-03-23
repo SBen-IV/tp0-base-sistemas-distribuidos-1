@@ -16,6 +16,7 @@ services:
     entrypoint: /client
     environment:
     - CLI_ID=1
+    - CLI_BETS_FILEPATH=/data.csv
     - NOMBRE=Santiago Lionel
     - APELLIDO=Lorca
     - DOCUMENTO=30904465

@@ -48,6 +48,7 @@ def create_client(client_id: int) -> dict[str]:
             "entrypoint": "/client",
             "environment": [
                 f"CLI_ID={client_id}",
+                f"CLI_BETS_FILEPATH=/data.csv",
                 "NOMBRE=Santiago Lionel",
                 "APELLIDO=Lorca",
                 "DOCUMENTO=30904465",

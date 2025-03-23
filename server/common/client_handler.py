@@ -1,15 +1,19 @@
 import logging
 
 from common.client_socket import ClientSocket
-from common.bet_info import BetInfo
 from common.utils import Bet, store_bets
+
+from model.bet_info import BetInfo
+from model.operation import Operation
 
 from protocol.agency_id import AGENCY_ID_MESSAGE_LEN, AgencyID
 from protocol.bet_info import BET_INFO_MESSAGE_LEN, BetInfoProtocol
+from protocol.operation import OPERATION_MESSAGE_LEN, OperationProtocol
 from protocol.bets import BetsProtocol
 from protocol.ok_message import OkMessage
 
 from enum import Enum
+
 
 
 class ProtocolState(Enum):
@@ -17,8 +21,9 @@ class ProtocolState(Enum):
     State of the protocol used to communicate with the client
     """
     AgencyIdentification = 1
-    RecvBets = 2
-    Fin = 3
+    WaitingOperation = 2
+    RecvBets = 3
+    Fin = 4
 
 
 class ClientHandler():
@@ -39,7 +44,10 @@ class ClientHandler():
                     # First receive client id
                     self._manage_client_id()
 
-                    self._state = ProtocolState.RecvBets
+                    self._state = ProtocolState.WaitingOperation
+
+                elif self._state == ProtocolState.WaitingOperation:
+                    self._manage_operation()
 
                 elif self._state == ProtocolState.RecvBets:
                     # Then wait for client to send the Bet amount and bytes mount
@@ -49,13 +57,13 @@ class ClientHandler():
                     # Send OK and close the client
                     bets = self._manage_bets(bet_info)
                     
-                    # Store bet
+                    # Store bets
                     store_bets(bets)
                     
                     # logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
                     logging.info(f"action: apuesta_recibida | result: success | cantidad: {bet_info._bets_amount}")
-                    
-                    # self._state = ProtocolState.Fin
+
+                    self._state = ProtocolState.WaitingOperation
 
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
@@ -76,6 +84,17 @@ class ClientHandler():
 
         self._agency_id = agency_id
 
+    def _manage_operation(self):
+        msg = self._recv_msg(OPERATION_MESSAGE_LEN)
+
+        operation = OperationProtocol.from_bytes(msg)
+
+        if operation == Operation.Bet:
+            self._state = ProtocolState.RecvBets
+        else:
+            self._state = ProtocolState.Fin
+
+        self._send_ok()
 
     def _manage_bet_info(self) -> BetInfo:
         msg = self._recv_msg(BET_INFO_MESSAGE_LEN)

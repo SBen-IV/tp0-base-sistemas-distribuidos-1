@@ -1,4 +1,4 @@
-from common.bet_info import BetInfo
+from model.bet_info import BetInfo
 
 BET_INFO_MESSAGE_LEN = 8
 
