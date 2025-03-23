@@ -81,7 +81,19 @@ func (c *client) Send(buffer []byte, size int) (int, error) {
 }
 
 func (c *client) Recv(buffer []byte, size int) (int, error) {
-	return bufio.NewReaderSize(c.conn, size).Read(buffer)
+	var total_bytes_recv int = 0 
+
+	for total_bytes_recv < size {
+		bytes_recv, err := bufio.NewReaderSize(c.conn, (size - total_bytes_recv)).Read(buffer[total_bytes_recv:])
+
+		if err != nil {
+			return total_bytes_recv, err
+		}
+
+		total_bytes_recv += bytes_recv
+	}
+
+	return total_bytes_recv, nil
 }
 
 
