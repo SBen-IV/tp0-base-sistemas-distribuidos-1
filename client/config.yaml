@@ -4,8 +4,8 @@ loop:
   amount: 500
   period: "150ms"
 log:
-  level: "INFO"
+  level: "DEBUG"
 batch:
-  maxAmount: 10
+  maxAmount: 9
 bets:
   filepath: "./data.csv"

@@ -10,9 +10,8 @@ COMPONENTS_LEN = 5
 
 class BetProtocol():
     @staticmethod
-    def from_bytes(msg, agency_id) -> Bet:
-        bet_as_str = msg.decode("utf-8")
-        bet_components = bet_as_str.split(";")
+    def from_bytes(msg, agency_id: int) -> Bet:
+        bet_components = msg.split(";")
 
         if len(bet_components) < COMPONENTS_LEN:
             raise BetFromBytesError(f"Less components ({len(bet_components)}) than expected ({COMPONENTS_LEN})")

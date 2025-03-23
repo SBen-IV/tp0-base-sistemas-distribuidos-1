@@ -29,7 +29,7 @@ func NewBet(bet *model.Bet) *Bet {
 }
 
 func (b *Bet) Encode() ([]byte, int) {
-	message := fmt.Sprintf("%s;%s;%s;%s;%s;", b.FirstName, b.LastName, b.Document, b.Birthday, b.Number)
+	message := fmt.Sprintf("%s;%s;%s;%s;%s,", b.FirstName, b.LastName, b.Document, b.Birthday, b.Number)
 
 	buf := []byte(message)
 

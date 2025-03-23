@@ -42,6 +42,8 @@ func NewAgency(betLoader common.BetLoader, client common.Client, config common.C
 }
 
 func (a *Agency) Run() {
+	a.betLoader.Init()
+	
 	var isRunning bool = true
 
 	for isRunning {
@@ -66,6 +68,7 @@ func (a *Agency) Run() {
 				}
 			case SendBets:
 				if err := a.manageBets(); err != nil {
+					log.Errorf("Could not manage bets: %v", err)
 					isRunning = false
 				}
 			}
@@ -100,13 +103,13 @@ func (a *Agency) manageBets() error {
 	bets, err := a.betLoader.GetBets(a.batchMaxAmount)
 	
 	if err != nil {
-	  return err
+		return err
 	}
 	
 	betsAmount := len(bets)
 
 	if betsAmount == EMPTY_BETS {
-	  	return &common.NoMoreBets{}
+		return &common.NoMoreBets{}
 	}
 
 	betsProtocol := protocol.NewBets(bets)

@@ -6,7 +6,7 @@ from common.utils import Bet, store_bets
 
 from protocol.agency_id import AGENCY_ID_MESSAGE_LEN, AgencyID
 from protocol.bet_info import BET_INFO_MESSAGE_LEN, BetInfoProtocol
-from protocol.bet import BetProtocol
+from protocol.bets import BetsProtocol
 from protocol.ok_message import OkMessage
 
 from enum import Enum
@@ -47,14 +47,15 @@ class ClientHandler():
 
                     # Wait for the client to send the amount of bets and bytes
                     # Send OK and close the client
-                    bet = self._manage_bet(bet_info)
+                    bets = self._manage_bets(bet_info)
                     
                     # Store bet
-                    store_bets(bets=[bet])
+                    store_bets(bets)
                     
-                    logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
+                    # logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
+                    logging.info(f"action: apuesta_recibida | result: success | cantidad: {bet_info._bets_amount}")
                     
-                    self._state = ProtocolState.Fin
+                    # self._state = ProtocolState.Fin
 
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
@@ -85,14 +86,14 @@ class ClientHandler():
 
         return bet_info
     
-    def _manage_bet(self, bet_info: BetInfo) -> Bet:
+    def _manage_bets(self, bet_info: BetInfo) -> list[Bet]:
         msg = self._recv_msg(bet_info._bytes_amount)
 
-        bet = BetProtocol.from_bytes(msg, self._agency_id)
+        bets = BetsProtocol.from_bytes(msg, self._agency_id, bet_info._bets_amount)
 
         self._send_ok()
 
-        return bet
+        return bets
     
     def _recv_msg(self, bytes_amount):
         msg = self._client_socket.recv(bytes_amount)

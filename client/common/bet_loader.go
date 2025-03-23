@@ -21,12 +21,14 @@ type BetLoader interface {
 type betLoader struct {
 	filename string
 	file *os.File
+	scanner *bufio.Scanner
 }
 
 func CreateBetLoader(filename string) *betLoader {
 	return &betLoader{
 		filename: filename,
 		file: nil,
+		scanner: nil,
 	}
 }
 
@@ -38,6 +40,8 @@ func (b *betLoader) Init() error {
 	}
 
 	b.file = file
+
+	b.scanner = bufio.NewScanner(b.file)
 
 	return nil
 }
@@ -62,18 +66,16 @@ func (b *betLoader) GetBet() *model.Bet {
 func (b *betLoader) GetBets(maxAmount int) ([]model.Bet, error) {
 	bets := []model.Bet{}
 
-	scanner := bufio.NewScanner(b.file)
-
 	for i := 0; i < maxAmount; i++ {
-		if !scanner.Scan() {
-			if err := scanner.Err(); err != nil {
+		if !b.scanner.Scan() {
+			if err := b.scanner.Err(); err != nil {
 				return nil, err
 			}
 
 			break
 		}
 
-		line := scanner.Text()
+		line := b.scanner.Text()
 		parsedLine, err := b.parseLine(line)
 
 		if err != nil {
@@ -90,12 +92,6 @@ func (b *betLoader) GetBets(maxAmount int) ([]model.Bet, error) {
 	}
 
 	return bets, nil
-}
-
-func (b *betLoader) Destroy() {
-	if b.file != nil {
-		b.file.Close()
-	}
 }
 
 func (b *betLoader) parseLine(line string) ([]string, error) {
@@ -133,4 +129,10 @@ func (b *betLoader) getBet(parsedLine []string) (*model.Bet, error) {
 	}
 
 	return model.NewBet(firstName, lastName, document, birthday, int32(number)), nil
+}
+
+func (b *betLoader) Destroy() {
+	if b.file != nil {
+		b.file.Close()
+	}
 }
