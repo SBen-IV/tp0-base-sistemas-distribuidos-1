@@ -57,7 +57,8 @@ def create_client(client_id: int) -> dict[str]:
             "networks": [TESTING_NETWORK_NAME],
             "depends_on": ["server"],
             "volumes": [
-                "./client/config.yaml:/config.yaml"
+                "./client/config.yaml:/config.yaml",
+                f"./.data/agency-{client_id}.csv:/data.csv"
             ]
         }
     }
