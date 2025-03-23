@@ -81,7 +81,6 @@ class ClientHandler():
         return bet
     
     def _recv_msg(self, bytes_amount):
-        # TODO: Modify the receive to avoid short-reads
         msg = self._client_socket.recv(bytes_amount)
         logging.debug(f"Received message {msg} with length {len(msg)}")
 
@@ -89,9 +88,8 @@ class ClientHandler():
 
     def _send_ok(self):
         ok = OkMessage()
-        # TODO: Modify the send to avoid short-writes
-        # Python doesn't have a 'size' to specify the amount of bytes sent?
         buf, size = ok.encode()
+
         self._client_socket.send(buf, size)
 
     def stop(self):

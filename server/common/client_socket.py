@@ -8,9 +8,11 @@ class ClientSocket():
         self._socket = socket
 
     def send(self, buffer, size: int):
+        # TODO: Modify the send to avoid short-writes
         total_bytes_sent = 0
 
         while total_bytes_sent < size:
+            # Python doesn't have a 'size' to specify the amount of bytes sent?
             bytes_sent = self._socket.send(buffer[total_bytes_sent:size])
 
             total_bytes_sent += bytes_sent
@@ -18,6 +20,7 @@ class ClientSocket():
         return total_bytes_sent
 
     def recv(self, size: int):
+        # TODO: Modify the receive to avoid short-reads
         total_bytes_received = 0
         data = b''
 
