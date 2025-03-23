@@ -2,6 +2,7 @@ package protocol
 
 import "encoding/binary"
 
+// Information about the bet sent to the server before sending the bet
 type BetInfo struct {
 	BetsAmount int32
 	BytesAmount int32
@@ -19,8 +20,8 @@ func (b *BetInfo) Encode() ([]byte, int, error) {
 
 	buf := make([]byte, ENCODE_LEN)
 
-	binary.BigEndian.PutUint32(buf[0:4], uint32(b.BetsAmount)) // Send only 1 bet
-	binary.BigEndian.PutUint32(buf[4:8], uint32(b.BytesAmount)) // Send bytes amount
+	binary.BigEndian.PutUint32(buf[0:4], uint32(b.BetsAmount))
+	binary.BigEndian.PutUint32(buf[4:8], uint32(b.BytesAmount))
 
 	return buf, ENCODE_LEN, nil
 }

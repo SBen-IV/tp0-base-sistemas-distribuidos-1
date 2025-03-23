@@ -11,6 +11,7 @@ type BetLoader interface {
 	GetBet() *model.Bet
 }
 
+// Reads bet from env variables
 type betLoader struct {}
 
 func CreateBetLoader() *betLoader {

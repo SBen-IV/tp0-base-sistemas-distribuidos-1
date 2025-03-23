@@ -7,6 +7,7 @@ type OKMessage struct {
 
 type ServerMessage int
 
+// Messages sent by the server
 const (
 	Ok ServerMessage = iota
 	Unkown

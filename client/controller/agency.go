@@ -10,6 +10,7 @@ import (
 
 var log = logging.MustGetLogger("log")
 
+// State of the communication with server
 type ProtocolState int
 
 const (
@@ -18,6 +19,7 @@ const (
 	SendBets
 )
 
+// This class acts as a controller for communication and model
 type Agency struct {
 	betLoader common.BetLoader
 	client common.Client
@@ -26,10 +28,10 @@ type Agency struct {
 	state ProtocolState
 }
 
-func NewAgency(config common.ClientConfig) *Agency {
+func NewAgency(betLoader common.BetLoader, client common.Client, config common.ClientConfig) *Agency {
 	return &Agency{
-		betLoader: common.CreateBetLoader(),
-		client: common.CreateClient(config),
+		betLoader: betLoader,
+		client: client,
 		id: config.ID,
 		stopped: make(chan bool, 1),
 	}

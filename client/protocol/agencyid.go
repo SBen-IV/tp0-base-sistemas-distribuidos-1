@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-
+// Agency ID used for protocol layer
 type AgencyID struct {
 	ID string
 }

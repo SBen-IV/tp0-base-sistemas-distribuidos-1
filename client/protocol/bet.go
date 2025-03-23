@@ -7,6 +7,7 @@ import (
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/model"
 )
 
+// Bet used for protocol layer
 type Bet struct {
 	FirstName string
 	LastName string

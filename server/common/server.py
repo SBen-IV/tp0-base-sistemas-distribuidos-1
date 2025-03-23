@@ -49,27 +49,6 @@ class Server:
                 logging.info("Server socket closed")
                 self._server_is_running = False
 
-    def __handle_client_connection(self, client_sock):
-        """
-        Read message from a specific client socket and closes the socket
-
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
-        """
-        try:
-            # TODO: Modify the receive to avoid short-reads
-            # msg = client_sock.recv(1024).rstrip().decode('utf-8')
-            msg = client_sock.recv(2)
-            logging.debug(f"Received message {int.from_bytes(msg, 'big')} with length {len(msg)}")
-            addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format("OK").encode('utf-8'))
-        except OSError as e:
-            logging.error(f"action: receive_message | result: fail | error: {e}")
-        finally:
-            client_sock.close()
-
     def __accept_new_connection(self):
         """
         Accept new connections

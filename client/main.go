@@ -119,8 +119,7 @@ func main() {
 	
 	signal.Notify(sigs, syscall.SIGTERM)
 	
-	// client := common.NewClient(clientConfig)
-	agency := controller.NewAgency(clientConfig)
+	agency := controller.NewAgency(common.CreateBetLoader(), common.CreateClient(clientConfig), clientConfig)
 
 	var wg sync.WaitGroup
 
@@ -136,11 +135,9 @@ func main() {
 			log.Info("stopServer received")
 		}
 
-		// client.Stop()
 		agency.Close()
 	}()
 
-	// client.StartClientLoop()
 	agency.Run()
 	
 	close(stopServer)

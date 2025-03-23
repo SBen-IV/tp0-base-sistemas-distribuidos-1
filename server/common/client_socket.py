@@ -4,6 +4,9 @@ from common.client_disconnected_exception import ClientDisconnectedException
 
 
 class ClientSocket():
+    """
+    Manages communication between client and server through the socket.
+    """
     def __init__(self, socket: socket):
         self._socket = socket
 
