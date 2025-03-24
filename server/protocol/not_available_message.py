@@ -1,6 +1,6 @@
 from protocol.response_message import ResponseMessage
 
 
-class OkMessage(ResponseMessage):
+class NotAvailableMessage(ResponseMessage):
     def __init__(self):
-        super().__init__("OK")
+        super().__init__("NA")

@@ -16,10 +16,10 @@ from protocol.err_message import ErrMessage
 from protocol.betfrombytes_error import BetFromBytesError
 from protocol.winners_info_message import WinnersInfoMessageProtocol
 from protocol.winners_message import WinnersMessageProtocol
+from protocol.not_available_message import NotAvailableMessage
+from protocol.response_message import ResponseMessage
 
 from enum import Enum
-
-
 
 
 class ProtocolState(Enum):
@@ -91,16 +91,17 @@ class ClientHandler():
 
         operation = OperationProtocol.from_bytes(msg)
 
+        logging.debug(f"Received operation: {operation} from {self._agency_id}")
+
         if operation == Operation.Bet:
             self._state = ProtocolState.RecvBets
         elif operation == Operation.NoMoreBets:
             self._national_lottery.mark_no_more_bets(self._agency_id)
         elif operation == Operation.Draw:
-            # pass
             if self._national_lottery.can_draw():
               self._state = ProtocolState.GetWinners
             else:
-              self._send_winners_not_available()
+              self._send_msg(NotAvailableMessage())
               return
         else:
             self._state = ProtocolState.Fin
@@ -143,20 +144,21 @@ class ClientHandler():
             raise e # Propagate the error to close the connection
             
     def _manage_get_winners(self):
-        winners = NationalLottery.get_winners(self._agency_id)
+        winners = self._national_lottery.get_winners(self._agency_id)
+
+        logging.debug(f"Winners {winners} for {self._agency_id}")
 
         winners_buf, winners_buf_size = WinnersMessageProtocol.to_bytes(winners)
 
         winners_info_buf, winners_info_buf_size = WinnersInfoMessageProtocol.to_bytes(winners_buf_size)
 
-        self._send(winners_info_buf, winners_info_buf_size)
+        self._client_socket.send(winners_info_buf, winners_info_buf_size)
 
-        self._recv_msg(2)
+        _msg = self._recv_msg(2)
 
-        self._send(winners_buf, winners_buf_size)
+        self._client_socket.send(winners_buf, winners_buf_size)
 
-        self._recv_msg(2)
-
+        _msg = self._recv_msg(2)
 
     def _recv_msg(self, bytes_amount):
         msg = self._client_socket.recv(bytes_amount)
@@ -164,7 +166,7 @@ class ClientHandler():
 
         return msg
 
-    def _send_msg(self, msg):
+    def _send_msg(self, msg: ResponseMessage):
         buf, size = msg.encode()
 
         self._client_socket.send(buf, size)

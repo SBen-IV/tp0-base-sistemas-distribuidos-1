@@ -12,7 +12,6 @@ import (
 
 type BetLoader interface {
 	Init() error
-	GetBet() *model.Bet
 	GetBets(maxAmount int) ([]model.Bet, error)
 	Destroy()
 }
@@ -44,23 +43,6 @@ func (b *betLoader) Init() error {
 	b.scanner = bufio.NewScanner(b.file)
 
 	return nil
-}
-
-func (b *betLoader) GetBet() *model.Bet {
-	firstName := os.Getenv("NOMBRE")
-	lastName := os.Getenv("APELLIDO")
-	document := os.Getenv("DOCUMENTO")
-	birthday := os.Getenv("NACIMIENTO")
-	numberStr := os.Getenv("NUMERO")
-
-	number, err := strconv.ParseInt(numberStr, 10, 32)
-
-	if err != nil {
-		// Should never return error
-		return nil
-	}
-
-	return model.NewBet(firstName, lastName, document, birthday, int32(number))
 }
 
 func (b *betLoader) GetBets(maxAmount int) ([]model.Bet, error) {

@@ -10,7 +10,7 @@ class ClientSocket():
     def __init__(self, socket: socket):
         self._socket = socket
 
-    def send(self, buffer, size: int):
+    def send(self, buffer: bytes, size: int):
         # TODO: Modify the send to avoid short-writes
         total_bytes_sent = 0
 

@@ -69,6 +69,7 @@ func (a *Agency) Run() {
 				}
 			case IdentifyToNationalLottery:
 				if err := a.identifyToNationalLottery(); err != nil {
+					log.Errorf("Could not identify to server: %v", err)
 					isRunning = false
 				} else if askingForWinners {
 					a.state = GetWinners
@@ -79,7 +80,7 @@ func (a *Agency) Run() {
 				if err := a.manageBets(); err != nil {
 					switch err.(type) {
 					case *common.NoMoreBets:
-						log.Debug("%v", err)
+						log.Debugf("%v", err)
 						a.state = NoMoreBets
 					default:
 						log.Errorf("Could not manage bets: %v", err)
@@ -241,34 +242,39 @@ func (a *Agency) sendBets(buf []byte, bytesAmount int) error {
 }
 
 func (a *Agency) recvWinners() ([]model.Winner, error) {
-	/*
 	buf, bytesAmount := protocol.NewWinnersBytesAmountBuf()
 
-	bytesRecv, err := a.client.Recv(buf, bytesAmount)
+	_, err := a.client.Recv(buf, bytesAmount)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	winnersBytesAmount := protocol.NewWinnersBytesAmountBuild(buf)
 
 	if err := a.sendOk(); err != nil {
-		return err
+		return nil, err
 	}
 
-	buf, bytesAmount = protocol.NewWinnersBuf(bytesAmount)
+	buf, bytesAmount = protocol.NewWinnersBuf(winnersBytesAmount)
 
-	bytesRecv, err = a.client.Recv(buf, bytesAmount)
+	_, err = a.client.Recv(buf, bytesAmount)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return protocol.NewWinnersBuild(buf, bytesAmount)
+	winners, err := protocol.NewWinnersBuild(buf, bytesAmount)
 
+	if err != nil {
+		return nil, err
+	}
 
-	*/
-	return []model.Winner{}, nil
+	if err := a.sendOk(); err != nil {
+		return nil, err
+	}
+
+	return winners, err
 }
 
 func (a *Agency) waitServerResponse() error {
@@ -294,6 +300,15 @@ func (a *Agency) waitServerResponse() error {
 	log.Debugf("Got response from server: %s", message)
 
 	return nil
+}
+
+func (a *Agency) sendOk() error {
+	okMessage := protocol.NewOkMessageBuf()
+	buf, bytesAmount := okMessage.Encode()
+
+	_, err := a.client.Send(buf, bytesAmount)
+
+	return err
 }
 
 func (a *Agency) Close() error {
