@@ -10,11 +10,13 @@ type ServerMessage int
 // Messages sent by the server
 const (
 	Ok ServerMessage = iota
+	ErrorCode1
 	Unkown
 )
 
 const (
 	okMessage = "OK"
+	errorCode1Message = "E1"
 )
 
 func NewMessageBuf() ([]byte, int) {
@@ -23,21 +25,15 @@ func NewMessageBuf() ([]byte, int) {
 	return make([]byte, MSG_BUF_LEN), MSG_BUF_LEN
 }
 
-func NewOKMessage() OKMessage {
-	const OK_MSG_LEN = 2
-
-	return OKMessage{
-		Buf: make([]byte, OK_MSG_LEN),
-		BytesAmount: OK_MSG_LEN,
-	}
-}
-
 func NewServerMessageBuild(buf []byte, bytesAmount int) ServerMessage {
-	message := string(buf[0:bytesAmount])
+	var response ServerMessage = Unkown
 
-	if message == okMessage {
-		return Ok
+	switch string(buf[0:bytesAmount]) {
+	case okMessage:
+		response = Ok
+	case errorCode1Message:
+		response = ErrorCode1
 	}
 
-	return Unkown
+	return response
 }

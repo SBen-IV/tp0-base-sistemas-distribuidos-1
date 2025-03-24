@@ -81,7 +81,6 @@ func (a *Agency) Run() {
 						isRunning = false
 					}
 				}
-
 			case EndConnection:
 				if err := a.sendOperation(model.FinOp); err != nil {
 					log.Errorf("Could not end connection: %v", err)
@@ -113,7 +112,7 @@ func (a *Agency) identifyToNationalLottery() error {
 
 	// Wait for response
 
-	return a.waitOK()
+	return a.waitServerResponse()
 }
 
 func (a *Agency) manageBets() error {
@@ -141,7 +140,7 @@ func (a *Agency) manageBets() error {
 		return err
 	}
 	
-	log.Debugf("Sending %v bets to server with len %v", betsAmount, bytesAmount)
+	log.Infof("Sending %v bets to server with len %v", betsAmount, bytesAmount)
 	
 	if err := a.sendBets(buf, bytesAmount); err != nil {
 		return err
@@ -166,7 +165,7 @@ func (a *Agency) sendOperation(op model.Operation) error {
 
 	// Wait for response
 
-	return a.waitOK()
+	return a.waitServerResponse()
 }
 
 func (a *Agency) sendBetsInfo(betsInfo *protocol.BetInfo) error {
@@ -180,7 +179,7 @@ func (a *Agency) sendBetsInfo(betsInfo *protocol.BetInfo) error {
 
 	a.client.Send(buf, bytes_amount)
 
-	return a.waitOK()
+	return a.waitServerResponse()
 }
 
 func (a *Agency) sendBets(buf []byte, bytesAmount int) error {
@@ -190,10 +189,10 @@ func (a *Agency) sendBets(buf []byte, bytesAmount int) error {
 		return err
 	}
 
-	return a.waitOK()
+	return a.waitServerResponse()
 }
 
-func (a *Agency) waitOK() error {
+func (a *Agency) waitServerResponse() error {
 	buf, bytesAmount := protocol.NewMessageBuf()
 
 	bytesRecv, err := a.client.Recv(buf, bytesAmount)
@@ -206,8 +205,7 @@ func (a *Agency) waitOK() error {
 	message := protocol.NewServerMessageBuild(buf, bytesRecv)
 
 	if message != protocol.Ok {
-		log.Error("Error building message from server: %v", message)
-		return fmt.Errorf("error building message from server: %v", buf)
+		return fmt.Errorf("error building message from server: %v", message)
 	}
 
 	log.Debugf("Got response from server: %s", message)
