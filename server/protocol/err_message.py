@@ -1,6 +1,6 @@
 class ErrMessage():
     def __init__(self):
-        self._data = "E1"
+        self._data = "NO"
 
     def encode(self):
         data_as_bytes = self._data.encode("utf-8")

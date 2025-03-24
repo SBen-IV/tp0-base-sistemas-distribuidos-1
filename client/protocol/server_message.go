@@ -1,22 +1,17 @@
 package protocol
 
-type OKMessage struct {
-	Buf []byte
-	BytesAmount int
-}
-
 type ServerMessage int
 
 // Messages sent by the server
 const (
 	Ok ServerMessage = iota
-	ErrorCode1
+	NotOk
 	Unkown
 )
 
 const (
 	okMessage = "OK"
-	errorCode1Message = "E1"
+	notOkMessage = "NO"
 )
 
 func NewMessageBuf() ([]byte, int) {
@@ -31,8 +26,8 @@ func NewServerMessageBuild(buf []byte, bytesAmount int) ServerMessage {
 	switch string(buf[0:bytesAmount]) {
 	case okMessage:
 		response = Ok
-	case errorCode1Message:
-		response = ErrorCode1
+	case notOkMessage:
+		response = NotOk
 	}
 
 	return response
