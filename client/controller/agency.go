@@ -18,7 +18,9 @@ const (
 	ConnectToNationalLottery ProtocolState = iota
 	IdentifyToNationalLottery
 	SendBets
+	NoMoreBets
 	EndConnection
+	GetWinners
 )
 
 const EMPTY_BETS = 0
@@ -49,7 +51,7 @@ func (a *Agency) Run() {
 		return 
 	}
 
-	var isRunning bool = true
+	var isRunning, askingForWinners bool = true, false
 
 	for isRunning {
 		select {
@@ -68,27 +70,55 @@ func (a *Agency) Run() {
 			case IdentifyToNationalLottery:
 				if err := a.identifyToNationalLottery(); err != nil {
 					isRunning = false
+				} else if askingForWinners {
+					a.state = GetWinners
 				} else {
 					a.state = SendBets
 				}
 			case SendBets:
 				if err := a.manageBets(); err != nil {
-					log.Errorf("Could not manage bets: %v", err)
 					switch err.(type) {
 					case *common.NoMoreBets:
-						a.state = EndConnection
+						log.Debug("%v", err)
+						a.state = NoMoreBets
 					default:
+						log.Errorf("Could not manage bets: %v", err)
 						isRunning = false
 					}
+				}
+			case NoMoreBets:
+				if err := a.sendOperation(model.NoMoreBets); err != nil {
+					log.Errorf("Could not send no more bets: %v", err)
+					isRunning = false
+				} else {
+					a.state = EndConnection
+					askingForWinners = true
+				}
+			case GetWinners:
+				if err := a.manageDraw(); err != nil {
+					switch err.(type) {
+					case *common.WinnersNotAvailableYet:
+						a.state = EndConnection
+					default:
+						log.Errorf("Could not manage winners: %v", err)
+						isRunning = false
+					}
+				} else {
+					a.state = EndConnection
+					askingForWinners = false
 				}
 			case EndConnection:
 				if err := a.sendOperation(model.FinOp); err != nil {
 					log.Errorf("Could not end connection: %v", err)
 				}
 
-				isRunning = false
+				if askingForWinners {
+					a.state = ConnectToNationalLottery
+					isRunning = true
+				} else {
+					isRunning = false
+				}
 			}
-
 		}
 	}
 }
@@ -151,6 +181,24 @@ func (a *Agency) manageBets() error {
 	return nil
 }
 
+func (a *Agency) manageDraw() error {
+	log.Debug("Asking for winners")
+
+	if err := a.sendOperation(model.DrawOp); err != nil {
+		return err
+	}
+
+	winners, err := a.recvWinners()
+
+	if err != nil {
+		return err
+	}
+
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(winners))
+
+	return nil
+}
+
 func (a *Agency) sendOperation(op model.Operation) error {
 	buf, bytesAmount := protocol.NewOperation(op).Encode()
 
@@ -192,6 +240,37 @@ func (a *Agency) sendBets(buf []byte, bytesAmount int) error {
 	return a.waitServerResponse()
 }
 
+func (a *Agency) recvWinners() ([]model.Winner, error) {
+	/*
+	buf, bytesAmount := protocol.NewWinnersBytesAmountBuf()
+
+	bytesRecv, err := a.client.Recv(buf, bytesAmount)
+
+	if err != nil {
+		return err
+	}
+
+	winnersBytesAmount := protocol.NewWinnersBytesAmountBuild(buf)
+
+	if err := a.sendOk(); err != nil {
+		return err
+	}
+
+	buf, bytesAmount = protocol.NewWinnersBuf(bytesAmount)
+
+	bytesRecv, err = a.client.Recv(buf, bytesAmount)
+
+	if err != nil {
+		return err
+	}
+
+	return protocol.NewWinnersBuild(buf, bytesAmount)
+
+
+	*/
+	return []model.Winner{}, nil
+}
+
 func (a *Agency) waitServerResponse() error {
 	buf, bytesAmount := protocol.NewMessageBuf()
 
@@ -204,6 +283,10 @@ func (a *Agency) waitServerResponse() error {
 
 	message := protocol.NewServerMessageBuild(buf, bytesRecv)
 
+	if message == protocol.WinnersNotAvailable {
+		return &common.WinnersNotAvailableYet{}
+	}
+	
 	if message != protocol.Ok {
 		return fmt.Errorf("error building message from server: %v", message)
 	}

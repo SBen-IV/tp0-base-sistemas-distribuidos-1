@@ -8,14 +8,21 @@ type Operation struct {
 
 const (
 	BET_OPERATION = "BET"
-	DEFAULT_OPERATION = "FIN"
+	DRAW_OPERATION = "DRW"
+	NO_MORE_BETS_OPERATION = "NMB"
+	FIN_OPERATION = "FIN"
 )
 
 func NewOperation(op model.Operation) *Operation {
-	data := DEFAULT_OPERATION
+	data := FIN_OPERATION
 
-	if op == model.BetOp {
+	switch op {
+	case model.BetOp:
 		data = BET_OPERATION
+	case model.DrawOp:
+		data = DRAW_OPERATION
+	case model.NoMoreBets:
+		data = NO_MORE_BETS_OPERATION
 	}
 
 	return &Operation{data: data}

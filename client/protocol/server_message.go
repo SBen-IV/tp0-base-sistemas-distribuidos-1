@@ -6,12 +6,14 @@ type ServerMessage int
 const (
 	Ok ServerMessage = iota
 	NotOk
+	WinnersNotAvailable
 	Unkown
 )
 
 const (
 	okMessage = "OK"
 	notOkMessage = "NO"
+	winnersNotAvailableYet = "NA"
 )
 
 func NewMessageBuf() ([]byte, int) {
@@ -28,6 +30,8 @@ func NewServerMessageBuild(buf []byte, bytesAmount int) ServerMessage {
 		response = Ok
 	case notOkMessage:
 		response = NotOk
+	case winnersNotAvailableYet:
+		response = WinnersNotAvailable
 	}
 
 	return response
