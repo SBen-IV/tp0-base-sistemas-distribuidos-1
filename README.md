@@ -359,3 +359,139 @@ El servidor por su parte sigue enviando el mensaje `OK` pero se agregó el mensa
 |  NO   |
 +-------+
 ```
+
+## Ejercicio 7
+
+### Cambios al protocolo
+
+Se agregaron nuevos mensajes para:
+
+- Marcar el fin del envío de bets.
+- Obtener ganadores del sorteo.
+- Indicar si no están disponibles los ganadores.
+- Enviar los ganadores.
+
+Primer mensaje luego de establecer la conexión:
+
+```
++-------+
+|2 bytes|
+|-------|
+|CLI_ID |
++-------+
+```
+
+La operación `BET` se mantiene intacta
+
+```
++-------+
+|3 bytes|
+|-------|
+|  BET  |
++-------+
+```
+
+```
++-------------------------+
+|  4 bytes  |   4 bytes   |
+|-----------|-------------|
+|BETS_AMOUNT| BYTES_AMOUNT|
++-------------------------+
+```
+
+```
++----------------------------------------------+
+|              (`BYTES_AMOUNT`) bytes          |
+|----------------------------------------------|
+|FIRST_NAME;LAST_NAME;DOCUMENT;BIRTHDAY;NUMBER,|
++----------------------------------------------+
+```
+
+Se agregó la nueva operación `NMB` (No More Bets) para indicar que ya no se enviarán más bets:
+
+```
++-------+
+|3 bytes|
+|-------|
+|  NMB  |
++-------+
+```
+
+Este mensaje marca la finalización del envío de bets por parte del cliente que procede a desconectarse (con la operación `FIN`) y re-establecer la conexión con el servidor para empezar el ciclo de consulta de los ganadores con la nueva operación `DRW` (Draw):
+
+```
++-------+
+|3 bytes|
+|-------|
+|  DRW  |
++-------+
+```
+
+Esta operación puede recibir el `OK` del servidor o un nuevo mensaje `NA` que indica que aún no se puede consultar los ganadores.
+
+Si la respuesta es `NA` entonces el cliente finaliza la conexión y se vuelve a conectar para consultar nuevamente.
+
+Si la respuesta es `OK` entonces inicia el flujo de obtención de ganadores. El cliente ahora esperará a que el servidor le envíe la cantidad de bytes del largo del paquete que contiene a los ganadores (que se llamará `WinnersInfo`):
+
+```
++------------+
+|   4 bytes  |
+|------------|
+|BYTES_AMOUNT|
++------------+
+```
+
+Para la lista de ganadores se envían los documentos de cada uno separados por punto y coma **;**
+
+```
++----------------------+
+|(`BYTES_AMOUNT`) bytes|
+|----------------------|
+|      DOCUMENT;       |
++----------------------+
+```
+
+```
+DOCUMENT1;DOCUMENT2;DOCUMENT3;DOCUMENT4;DOCUMENT5;DOCUMENT6;DOCUMENT7;
+```
+
+Tanto para WinnersInfo como para la lista de Winners el cliente responde con un `OK` en caso de no encontrar errores. Si hay algún error se cierra la conexión.
+
+Por último, el mensaje de fin de conexión se mantiene:
+
+```
++-------+
+|3 bytes|
+|-------|
+|  FIN  |
++-------+
+```
+
+El servidor agrega los mensajes de los ganadores y el que indica que aún no está disponible el sorteo (`NA`):
+
+
+```
++-------+
+|2 bytes|
+|-------|
+|  OK   |
++-------+
+```
+
+```
++-------+
+|2 bytes|
+|-------|
+|  NO   |
++-------+
+```
+
+```
++-------+
+|2 bytes|
+|-------|
+|  NA   |
++-------+
+```
+
+
