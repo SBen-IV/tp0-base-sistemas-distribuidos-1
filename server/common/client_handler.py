@@ -1,7 +1,6 @@
 import logging
 
 from common.client_socket import ClientSocket
-from common.utils import Bet, store_bets
 from common.national_lottery import NationalLottery
 
 from model.bet_info import BetInfo
@@ -10,6 +9,7 @@ from model.operation import Operation
 from protocol.agency_id import AGENCY_ID_MESSAGE_LEN, AgencyID
 from protocol.bet_info import BET_INFO_MESSAGE_LEN, BetInfoProtocol
 from protocol.operation import OPERATION_MESSAGE_LEN, OperationProtocol
+from protocol.client_message import OK_CLIENT_MESSAGE_LEN, ClientMessage, ClientResponseMessage
 from protocol.bets import BetsProtocol
 from protocol.ok_message import OkMessage
 from protocol.err_message import ErrMessage
@@ -126,7 +126,7 @@ class ClientHandler():
 
         return bet_info
     
-    def _manage_bets(self, bet_info: BetInfo) -> list[Bet]:
+    def _manage_bets(self, bet_info: BetInfo):
         msg = self._recv_msg(bet_info._bytes_amount)
 
         try:
@@ -154,11 +154,17 @@ class ClientHandler():
 
         self._client_socket.send(winners_info_buf, winners_info_buf_size)
 
-        _msg = self._recv_msg(2)
+        msg = self._recv_msg(OK_CLIENT_MESSAGE_LEN)
+
+        if ClientMessage.from_bytes(msg, OK_CLIENT_MESSAGE_LEN) != ClientResponseMessage.OkMessage:
+            raise Exception("Client failed unexpectedly")
 
         self._client_socket.send(winners_buf, winners_buf_size)
 
-        _msg = self._recv_msg(2)
+        msg = self._recv_msg(OK_CLIENT_MESSAGE_LEN)
+        
+        if ClientMessage.from_bytes(msg, OK_CLIENT_MESSAGE_LEN) != ClientResponseMessage.OkMessage:
+            raise Exception("Client failed unexpectedly")
 
     def _recv_msg(self, bytes_amount):
         msg = self._client_socket.recv(bytes_amount)

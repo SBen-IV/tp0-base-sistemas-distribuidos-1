@@ -13,6 +13,9 @@ class SingletonNationalLottery(type):
 
 
 class NationalLottery(metaclass=SingletonNationalLottery):
+    """
+    Represents the National Lottery. Handles bets storage and draw.
+    """
     def __init__(self, clients_amount: int):
         self._agencies = {}
         self._clients_amount = clients_amount
