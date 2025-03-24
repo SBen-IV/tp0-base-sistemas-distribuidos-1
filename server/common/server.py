@@ -8,7 +8,7 @@ from common.national_lottery import NationalLottery
 
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog, clients_amount: int):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
@@ -16,6 +16,7 @@ class Server:
         self._server_is_running = True
         self._client_socket = None
         self._client_handler = None
+        self._clients_amount = clients_amount
 
         signal.signal(signal.SIGTERM, self.__stop)
 
@@ -44,7 +45,7 @@ class Server:
                 # Create a new ClientSocket()
                 # Pass it to a ClientHandler(client_socket)
                 client_socket = self.__accept_new_connection()
-                self._client_handler = ClientHandler(ClientSocket(client_socket), NationalLottery())
+                self._client_handler = ClientHandler(ClientSocket(client_socket), NationalLottery(self._clients_amount))
                 self._client_handler.run()
             except OSError:
                 logging.info("Server socket closed")

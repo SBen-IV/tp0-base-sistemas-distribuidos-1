@@ -13,8 +13,9 @@ class SingletonNationalLottery(type):
 
 
 class NationalLottery(metaclass=SingletonNationalLottery):
-    def __init__(self):
+    def __init__(self, clients_amount: int):
         self._agencies = {}
+        self._clients_amount = clients_amount
 
     def add_agency(self, agency_id: str):
         value = self._agencies.get(agency_id, None)
@@ -29,7 +30,7 @@ class NationalLottery(metaclass=SingletonNationalLottery):
         store_bets(bets)
             
     def can_draw(self) -> bool:
-        return all(value for value in self._agencies.values())
+        return self._clients_amount == len(self._agencies) and all(value for value in self._agencies.values())
     
     def get_winners(self, agency_id: str) -> list[Winner]:
         winners = []

@@ -22,7 +22,7 @@ def create_networks() -> dict[str]:
         }
     }
 
-def create_service_server() -> dict[str]:
+def create_service_server(n_clients: int) -> dict[str]:
     return {
         "server": {
             "container_name": "server",
@@ -30,6 +30,7 @@ def create_service_server() -> dict[str]:
             "entrypoint": "python3 /main.py",
             "environment": [
                 "PYTHONUNBUFFERED=1",
+                f"CLIENTS_AMOUNT={n_clients}"
             ],
             "networks": [ TESTING_NETWORK_NAME ],
             "volumes": [
@@ -66,7 +67,7 @@ def create_client(client_id: int) -> dict[str]:
 
 def create_services(n_clients: int) -> dict[str]:
     services = {}
-    server = create_service_server()
+    server = create_service_server(n_clients)
     services.update(server)
 
     for client_id in range(1, n_clients + 1):
