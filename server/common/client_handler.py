@@ -92,7 +92,7 @@ class ClientHandler():
 
         # Wait for the client to send the amount of bets and bytes
         # Send the appropriate message
-        bets = self._manage_bets(bet_info)
+        self._manage_bets(bet_info)
         
 
     def _manage_bet_info(self) -> BetInfo:
