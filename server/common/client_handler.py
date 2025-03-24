@@ -2,6 +2,7 @@ import logging
 
 from common.client_socket import ClientSocket
 from common.utils import Bet, store_bets
+from common.national_lottery import NationalLottery
 
 from model.bet_info import BetInfo
 from model.operation import Operation
@@ -13,8 +14,12 @@ from protocol.bets import BetsProtocol
 from protocol.ok_message import OkMessage
 from protocol.err_message import ErrMessage
 from protocol.betfrombytes_error import BetFromBytesError
+from protocol.winners_info_message import WinnersInfoMessageProtocol
+from protocol.winners_message import WinnersMessageProtocol
 
 from enum import Enum
+
+
 
 
 class ProtocolState(Enum):
@@ -25,15 +30,17 @@ class ProtocolState(Enum):
     WaitingOperation = 2
     RecvBets = 3
     Fin = 4
+    GetWinners = 5
 
 
 class ClientHandler():
     """
     Handles communication with the Agency connected to client_socket
     """
-    def __init__(self, client_socket: ClientSocket):
+    def __init__(self, client_socket: ClientSocket, national_lottery: NationalLottery):
         self._client_socket = client_socket
         self._state = ProtocolState.AgencyIdentification
+        self._national_lottery = national_lottery
 
     def run(self):
         """
@@ -45,12 +52,16 @@ class ClientHandler():
                     self._manage_client_id()
 
                     self._state = ProtocolState.WaitingOperation
-
                 elif self._state == ProtocolState.WaitingOperation:
                     self._manage_operation()
 
                 elif self._state == ProtocolState.RecvBets:
                     self._manage_bet_batch()
+
+                    self._state = ProtocolState.WaitingOperation
+                elif self._state == ProtocolState.GetWinners:
+                    logging.info("action: sorteo | result: success")
+                    self._manage_get_winners()
 
                     self._state = ProtocolState.WaitingOperation
 
@@ -70,9 +81,10 @@ class ClientHandler():
         addr = self._client_socket.getpeername()
         logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {agency_id}')
         
-        self._send_ok()
+        self._send_msg(OkMessage())
 
         self._agency_id = agency_id
+        self._national_lottery.add_agency(agency_id)
 
     def _manage_operation(self):
         msg = self._recv_msg(OPERATION_MESSAGE_LEN)
@@ -81,10 +93,19 @@ class ClientHandler():
 
         if operation == Operation.Bet:
             self._state = ProtocolState.RecvBets
+        elif operation == Operation.NoMoreBets:
+            self._national_lottery.mark_no_more_bets(self._agency_id)
+        elif operation == Operation.Draw:
+            # pass
+            if self._national_lottery.can_draw():
+              self._state = ProtocolState.GetWinners
+            else:
+              self._send_winners_not_available()
+              return
         else:
             self._state = ProtocolState.Fin
 
-        self._send_ok()
+        self._send_msg(OkMessage())
 
     def _manage_bet_batch(self):
         # Then wait for client to send the Bet amount and bytes mount
@@ -100,7 +121,7 @@ class ClientHandler():
 
         bet_info = BetInfoProtocol.from_bytes(msg)
 
-        self._send_ok()
+        self._send_msg(OkMessage())
 
         return bet_info
     
@@ -115,28 +136,36 @@ class ClientHandler():
             
             logging.info(f"action: apuesta_recibida | result: success | cantidad: {bet_info._bets_amount}")
 
-            self._send_ok()
+            self._send_msg(OkMessage())
         except (BetFromBytesError, ValueError) as e:
-            self._send_error()
+            self._send_msg(ErrMessage())
             logging.error(f"action: apuesta_recibida | result: fail | cantidad: {bet_info._bets_amount}")
             raise e # Propagate the error to close the connection
             
-    
+    def _manage_get_winners(self):
+        winners = NationalLottery.get_winners(self._agency_id)
+
+        winners_buf, winners_buf_size = WinnersMessageProtocol.to_bytes(winners)
+
+        winners_info_buf, winners_info_buf_size = WinnersInfoMessageProtocol.to_bytes(winners_buf_size)
+
+        self._send(winners_info_buf, winners_info_buf_size)
+
+        self._recv_msg(2)
+
+        self._send(winners_buf, winners_buf_size)
+
+        self._recv_msg(2)
+
+
     def _recv_msg(self, bytes_amount):
         msg = self._client_socket.recv(bytes_amount)
         logging.debug(f"Received message {msg} with length {len(msg)}")
 
         return msg
 
-    def _send_ok(self):
-        ok = OkMessage()
-        buf, size = ok.encode()
-
-        self._client_socket.send(buf, size)
-
-    def _send_error(self):
-        err = ErrMessage()
-        buf, size = err.encode()
+    def _send_msg(self, msg):
+        buf, size = msg.encode()
 
         self._client_socket.send(buf, size)
 

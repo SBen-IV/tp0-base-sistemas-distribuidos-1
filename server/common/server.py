@@ -4,6 +4,7 @@ import signal
 
 from common.client_handler import ClientHandler
 from common.client_socket import ClientSocket
+from common.national_lottery import NationalLottery
 
 
 class Server:
@@ -43,7 +44,7 @@ class Server:
                 # Create a new ClientSocket()
                 # Pass it to a ClientHandler(client_socket)
                 client_socket = self.__accept_new_connection()
-                self._client_handler = ClientHandler(ClientSocket(client_socket))
+                self._client_handler = ClientHandler(ClientSocket(client_socket), NationalLottery())
                 self._client_handler.run()
             except OSError:
                 logging.info("Server socket closed")
