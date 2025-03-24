@@ -133,7 +133,7 @@ class ClientHandler():
             bets = BetsProtocol.from_bytes(msg, self._agency_id, bet_info._bets_amount)
         
             # Store bets
-            store_bets(bets)
+            self._national_lottery.store_bets(bets)
             
             logging.info(f"action: apuesta_recibida | result: success | cantidad: {bet_info._bets_amount}")
 
@@ -146,7 +146,7 @@ class ClientHandler():
     def _manage_get_winners(self):
         winners = self._national_lottery.get_winners(self._agency_id)
 
-        logging.debug(f"Winners {winners} for {self._agency_id}")
+        logging.debug(f"Winners {len(winners)} for {self._agency_id}")
 
         winners_buf, winners_buf_size = WinnersMessageProtocol.to_bytes(winners)
 

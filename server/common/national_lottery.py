@@ -1,5 +1,5 @@
 from model.winner import Winner
-from common.utils import has_won, load_bets
+from common.utils import Bet, has_won, load_bets, store_bets
 
 
 class SingletonNationalLottery(type):
@@ -24,6 +24,9 @@ class NationalLottery(metaclass=SingletonNationalLottery):
 
     def mark_no_more_bets(self, agency_id: str):
         self._agencies[agency_id] = True
+
+    def store_bets(self, bets: list[Bet]):
+        store_bets(bets)
             
     def can_draw(self) -> bool:
         return all(value for value in self._agencies.values())
@@ -31,8 +34,8 @@ class NationalLottery(metaclass=SingletonNationalLottery):
     def get_winners(self, agency_id: str) -> list[Winner]:
         winners = []
 
-        for bet in load_bets():
-            if bet.agency == agency_id and has_won(bet):
+        for bet in list(load_bets()):
+            if bet.agency == int(agency_id) and has_won(bet):
                 winners.append(Winner(bet.document))
 
         return winners
