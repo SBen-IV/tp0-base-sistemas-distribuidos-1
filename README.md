@@ -243,8 +243,6 @@ El protocolo enviará mensaje de tamaño variable del lado del cliente. Inicialm
 +-------+
 ```
 
-<!-- BET 3 bytes -->
-
 Luego se mandan 8 bytes con la cantidad de apuestas (`BETS_AMOUNT`) y la cantidad de bytes que se enviarán (`BYTES_AMOUNT`)
 
 ```
@@ -270,8 +268,6 @@ Para enviar la apuesta en sí se concatenan cada uno de los componentes de la ap
 <!-- 1;1;8;10;4; = 5 (separators) + 1 + 1 + 8 + 10 + 4 = 29 -->
 <!-- 8000 bytes (máx) / 29 = 275.86 => 275 bets max in a batch -->
 
-<!-- FIN 3 bytes -->
-
 Por el lado del servidor siempre va a responder con un `OK` a cada uno de los mensajes recibidos.
 
 ```
@@ -282,6 +278,84 @@ Por el lado del servidor siempre va a responder con un `OK` a cada uno de los me
 +-------+
 ```
 
-<!-- NO # NoOKProtocolMessage -->
-
 Luego que el cliente recibe el `OK` de la apuesta enviada, cierra la conexión con el servidor.
+
+## Ejercicio 6
+
+### Cambios al protocolo
+
+Se agregaron nuevos mensajes para:
+
+- Marcar el inicio del envío de un batch de bets.
+- Marcar el fin del envío de mensajes.
+- Marcar un error en el batch de bets.
+
+El primer mensaje luego de la conexión sigue siendo el `CLI_ID`:
+
+```
++-------+
+|2 bytes|
+|-------|
+|CLI_ID |
++-------+
+```
+
+Ahora se envía un mensaje de 3 bytes indicando la operación a realizar. En caso de ser `BET` se procede a enviar la información los bets a enviar y el batch:
+
+```
++-------+
+|3 bytes|
+|-------|
+|  BET  |
++-------+
+```
+
+```
++-------------------------+
+|  4 bytes  |   4 bytes   |
+|-----------|-------------|
+|BETS_AMOUNT| BYTES_AMOUNT|
++-------------------------+
+```
+
+```
++----------------------------------------------+
+|              (`BYTES_AMOUNT`) bytes          |
+|----------------------------------------------|
+|FIRST_NAME;LAST_NAME;DOCUMENT;BIRTHDAY;NUMBER,|
++----------------------------------------------+
+```
+
+Se modificó el formato de una bet para que el caracter delimitante sea la coma **,** de modo que un batch de bets tiene el siguiente formato, separando sus componentes con **;** (punto y coma) y con **,** (coma) se diferencia un bet de otro:
+
+```
+FIRST_NAME;LAST_NAME;DOCUMENT;BIRTHDAY;NUMBER,FIRST_NAME;LAST_NAME;DOCUMENT;BIRTHDAY;NUMBER,
+```
+
+El mensaje de operación para indicar el fin del envío de mensajes es `FIN`:
+
+```
++-------+
+|3 bytes|
+|-------|
+|  FIN  |
++-------+
+```
+
+El servidor por su parte sigue enviando el mensaje `OK` pero se agregó el mensaje `NO` (Not Ok) para el caso que haya un error con el batch enviado por el cliente:
+
+```
++-------+
+|2 bytes|
+|-------|
+|  OK   |
++-------+
+```
+
+```
++-------+
+|2 bytes|
+|-------|
+|  NO   |
++-------+
+```
