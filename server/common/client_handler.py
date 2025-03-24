@@ -42,17 +42,7 @@ class ClientHandler():
                     self._state = ProtocolState.RecvBets
 
                 elif self._state == ProtocolState.RecvBets:
-                    # Then wait for client to send the Bet amount and bytes mount
-                    bet_info = self._manage_bet_info()
-
-                    # Wait for the client to send the amount of bets and bytes
-                    # Send OK and close the client
-                    bet = self._manage_bet(bet_info)
-                    
-                    # Store bet
-                    store_bets(bets=[bet])
-                    
-                    logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
+                    self._manage_bet_batch()
                     
                     self._state = ProtocolState.Fin
 
@@ -75,6 +65,14 @@ class ClientHandler():
 
         self._agency_id = agency_id
 
+    def _manage_bet_batch(self):
+        # Then wait for client to send the Bet amount and bytes mount
+        bet_info = self._manage_bet_info()
+
+        # Wait for the client to send the amount of bets and bytes
+        # Send the appropriate message
+        self._manage_bet(bet_info)
+
 
     def _manage_bet_info(self) -> BetInfo:
         msg = self._recv_msg(BET_INFO_MESSAGE_LEN)
@@ -85,14 +83,17 @@ class ClientHandler():
 
         return bet_info
     
-    def _manage_bet(self, bet_info: BetInfo) -> Bet:
+    def _manage_bet(self, bet_info: BetInfo):
         msg = self._recv_msg(bet_info._bytes_amount)
 
         bet = BetProtocol.from_bytes(msg, self._agency_id)
 
+        store_bets(bets=[bet])
+                    
+        logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")           
+
         self._send_ok()
 
-        return bet
     
     def _recv_msg(self, bytes_amount):
         msg = self._client_socket.recv(bytes_amount)
