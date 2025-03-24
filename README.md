@@ -531,7 +531,7 @@ sequenceDiagram
 
     C->>+S: DRW_OP
     S-->>-C: OK
-    S->>+C: WinnersBytes
+    S->>+C: WinnersInfo
     C-->>-S: OK
     S->>+C: Winners
     C-->>-S: OK
