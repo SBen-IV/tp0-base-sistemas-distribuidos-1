@@ -469,7 +469,6 @@ Por último, el mensaje de fin de conexión se mantiene:
 
 El servidor agrega los mensajes de los ganadores y el que indica que aún no está disponible el sorteo (`NA`):
 
-
 ```
 +-------+
 |2 bytes|
@@ -494,4 +493,49 @@ El servidor agrega los mensajes de los ganadores y el que indica que aún no est
 +-------+
 ```
 
+Los siguientes diagramas muestran los mensajes enviados entre el cliente y el servidor cuando el cliente está consultando por los ganadores del sorteo. El primer diagrama es el caso "no feliz" donde el cliente se conecta, pregunta por lo resultados, el servidor le devuelve que aún no están disponibles a lo que el cliente pasa a cerrar la conexión y volver a conectarse.
 
+La conexión y desconexión se realiza porque el servidor atiende de a 1 cliente a la vez, de esta forma al conectarse y desconectarse le cede el turno a otro cliente que estuviera esperando ser atendido.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+
+    loop Until Draw returns OK
+        C->>+S: Connect
+
+        C->>+S: CLI_ID
+        S-->>-C: OK
+
+        C->>+S: DRW_OP
+
+        S-->>-C: NA
+
+        C->>+S: FIN_OP
+        S-->>-C: OK
+    end
+```
+
+El segundo caso es el flujo feliz en donde el servidor le envía efectivamente los ganadores del sorteo y el cliente puede finalizar su ejecución:
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+
+    C->>+S: Connect
+
+    C->>+S: CLI_ID
+    S-->>-C: OK
+
+    C->>+S: DRW_OP
+    S-->>-C: OK
+    S->>+C: WinnersBytes
+    C-->>-S: OK
+    S->>+C: Winners
+    C-->>-S: OK
+
+    C->>+S: FIN_OP
+    S-->>-C: OK
+```
