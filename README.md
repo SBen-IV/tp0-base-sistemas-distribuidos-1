@@ -539,3 +539,11 @@ sequenceDiagram
     C->>+S: FIN_OP
     S-->>-C: OK
 ```
+
+## Ejercicio 8
+
+Se utilizó la librería `multithreading` de Python para atender a múltiples clientes en paralelo. Para proteger los recursos se usaron `Lock`s de la librería `threading`, encapsulando cada recurso en una clase "safe":
+
+- `BetsStorageSafe`: maneja el acceso (lectura y escritura) al archivo de bets.
+
+- `AgenciesSafe`: mantiene un registro de las agencias que informan cuando terminaron de enviar todos los bets y determina si se puede o no realizar el sorteo.
