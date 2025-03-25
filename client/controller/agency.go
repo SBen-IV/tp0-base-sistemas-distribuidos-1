@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/model"
@@ -33,6 +34,7 @@ type Agency struct {
 	stopped chan bool
 	state ProtocolState
 	batchMaxAmount int
+	loopPeriod time.Duration
 }
 
 func NewAgency(betLoader common.BetLoader, client common.Client, config common.ClientConfig) *Agency {
@@ -42,6 +44,7 @@ func NewAgency(betLoader common.BetLoader, client common.Client, config common.C
 		id: config.ID,
 		stopped: make(chan bool, 1),
 		batchMaxAmount: config.BatchMaxAmount,
+		loopPeriod: config.LoopPeriod,
 	}
 }
 
@@ -51,7 +54,7 @@ func (a *Agency) Run() {
 		return 
 	}
 
-	var isRunning, askingForWinners bool = true, false
+	var isRunning bool = true
 
 	for isRunning {
 		select {
@@ -71,8 +74,6 @@ func (a *Agency) Run() {
 				if err := a.identifyToNationalLottery(); err != nil {
 					log.Errorf("Could not identify to server: %v", err)
 					isRunning = false
-				} else if askingForWinners {
-					a.state = GetWinners
 				} else {
 					a.state = SendBets
 				}
@@ -92,33 +93,27 @@ func (a *Agency) Run() {
 					log.Errorf("Could not send no more bets: %v", err)
 					isRunning = false
 				} else {
-					a.state = EndConnection
-					askingForWinners = true
+					a.state = GetWinners
 				}
 			case GetWinners:
 				if err := a.manageDraw(); err != nil {
 					switch err.(type) {
 					case *common.WinnersNotAvailableYet:
-						a.state = EndConnection
+						// Wait some time to ask again
+						time.Sleep(a.loopPeriod)
 					default:
 						log.Errorf("Could not manage winners: %v", err)
 						isRunning = false
 					}
 				} else {
 					a.state = EndConnection
-					askingForWinners = false
 				}
 			case EndConnection:
 				if err := a.sendOperation(model.FinOp); err != nil {
 					log.Errorf("Could not end connection: %v", err)
 				}
 
-				if askingForWinners {
-					a.state = ConnectToNationalLottery
-					isRunning = true
-				} else {
-					isRunning = false
-				}
+				isRunning = false
 			}
 		}
 	}
