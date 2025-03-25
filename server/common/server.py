@@ -24,8 +24,8 @@ class Server:
         logging.info("SIGTERM received")
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
-        
-        self._client_manager.stop()
+        logging.info("Server socket closed")
+
 
     def run(self):
         """
@@ -61,3 +61,7 @@ class Server:
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
+
+    def stop(self):
+        self._client_manager.stop()
+        logging.info("Client manager stopped")

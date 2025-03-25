@@ -43,4 +43,4 @@ class ClientSocket():
         return self._socket.getpeername()
 
     def close(self):
-        self._socket.shutdown(SHUT_RDWR)
+        self._socket.close()

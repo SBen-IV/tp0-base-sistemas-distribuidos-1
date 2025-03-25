@@ -15,12 +15,7 @@ class ClientManager():
     def add_client(self, client_socket: ClientSocket):
         client = ClientHandler(client_socket, self._national_lottery)
 
-        # p = Process(target=client.run)
-
         logging.debug("Starting new client")
-        # p.start()
-
-        # self._clients.append((client, p))
 
         t = threading.Thread(target=client.run)
 
@@ -32,3 +27,5 @@ class ClientManager():
         for (client, p) in self._clients:
             client.stop()
             p.join()
+        
+        logging.info("Clients stopped")

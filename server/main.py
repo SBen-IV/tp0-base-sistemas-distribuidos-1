@@ -53,6 +53,8 @@ def main():
     server = Server(port, listen_backlog, clients_amount)
     server.run()
 
+    server.stop()
+
     logging.info("Server shutdown complete")
 
 
