@@ -115,7 +115,7 @@ func main() {
 	}
 
 	sigs := make(chan os.Signal, 1)
-	stopServer := make(chan bool, 1)
+	stop := make(chan bool, 1)
 	
 	signal.Notify(sigs, syscall.SIGTERM)
 	
@@ -131,8 +131,8 @@ func main() {
 		select {
 		case <-sigs:
 			log.Info("SIGTERM received")
-		case <-stopServer:
-			log.Info("stopServer received")
+		case <-stop:
+			log.Info("stop received")
 		}
 
 		agency.Close()
@@ -140,7 +140,7 @@ func main() {
 
 	agency.Run()
 	
-	close(stopServer)
+	close(stop)
 
 	wg.Wait()
 
