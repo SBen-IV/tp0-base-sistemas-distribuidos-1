@@ -1,7 +1,7 @@
 from model.winner import Winner
-from common.utils import Bet, has_won, load_bets, store_bets
-from server.common.agencies_safe import AgenciesSafe
-from server.common.bets_storage_safe import BetsStorageSafe
+from common.utils import Bet, has_won
+from common.agencies_safe import AgenciesSafe
+from common.bets_storage_safe import BetsStorageSafe
 
 class SingletonNationalLottery(type):
     _instances = {}
