@@ -70,7 +70,7 @@ class ClientHandler():
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | exception: {e}")
         finally:
-            self._client_socket.close()
+            self.stop()
 
     def _manage_client_id(self):
         # First receive client id

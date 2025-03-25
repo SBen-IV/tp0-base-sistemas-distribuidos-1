@@ -1,6 +1,7 @@
+import logging
+
 from model.winner import Winner
 from common.utils import Bet, has_won, load_bets, store_bets
-
 
 class SingletonNationalLottery(type):
     _instances = {}
@@ -33,7 +34,12 @@ class NationalLottery(metaclass=SingletonNationalLottery):
         store_bets(bets)
             
     def can_draw(self) -> bool:
-        return self._clients_amount == len(self._agencies) and all(value for value in self._agencies.values())
+        all_clients_reported = self._clients_amount == len(self._agencies)
+        all_clients_done = all(value for value in self._agencies.values())
+
+        logging.debug(f"can_draw({all_clients_reported}, {all_clients_done})")
+
+        return all_clients_reported and all_clients_done
     
     def get_winners(self, agency_id: str) -> list[Winner]:
         winners = []

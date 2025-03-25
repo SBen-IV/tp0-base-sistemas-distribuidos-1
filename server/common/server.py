@@ -5,6 +5,7 @@ import signal
 from common.client_handler import ClientHandler
 from common.client_socket import ClientSocket
 from common.national_lottery import NationalLottery
+from common.client_manager import ClientManager
 
 
 class Server:
@@ -14,9 +15,10 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._server_is_running = True
-        self._client_socket = None
-        self._client_handler = None
-        self._clients_amount = clients_amount
+        # self._client_socket = None
+        # self._client_handler = None
+        # self._clients_amount = clients_amount
+        self._client_manager = ClientManager(clients_amount)
 
         signal.signal(signal.SIGTERM, self.__stop)
 
@@ -26,8 +28,9 @@ class Server:
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
         
-        if self._client_handler is not None:
-            self._client_handler.stop()
+        self._client_manager.stop()
+        # if self._client_handler is not None:
+        #     self._client_handler.stop()
 
     def run(self):
         """
@@ -45,8 +48,9 @@ class Server:
                 # Create a new ClientSocket()
                 # Pass it to a ClientHandler(client_socket)
                 client_socket = self.__accept_new_connection()
-                self._client_handler = ClientHandler(ClientSocket(client_socket), NationalLottery(self._clients_amount))
-                self._client_handler.run()
+                self._client_manager.add_client(ClientSocket(client_socket))
+                # self._client_handler = ClientHandler(ClientSocket(client_socket), NationalLottery(self._clients_amount))
+                # self._client_handler.run()
             except OSError:
                 logging.info("Server socket closed")
                 self._server_is_running = False
