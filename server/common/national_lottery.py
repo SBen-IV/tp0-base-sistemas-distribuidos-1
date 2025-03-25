@@ -1,7 +1,7 @@
-import logging
-
 from model.winner import Winner
 from common.utils import Bet, has_won, load_bets, store_bets
+from common.safe_agencies import SafeAgencies
+from common.store_bets_safe import BetsStorageSafe
 
 class SingletonNationalLottery(type):
     _instances = {}
@@ -18,33 +18,26 @@ class NationalLottery(metaclass=SingletonNationalLottery):
     Represents the National Lottery. Handles bets storage and draw.
     """
     def __init__(self, clients_amount: int):
-        self._agencies = {}
-        self._clients_amount = clients_amount
+        self._agencies = SafeAgencies(clients_amount)
+        self._bets_storage = BetsStorageSafe()
 
     def add_agency(self, agency_id: str):
-        value = self._agencies.get(agency_id, None)
-
-        if value is None:
-            self._agencies[agency_id] = False
+        self._agencies.add_agency(agency_id)
 
     def mark_no_more_bets(self, agency_id: str):
-        self._agencies[agency_id] = True
+        self._agencies.mark_no_more_bets(agency_id)
 
     def store_bets(self, bets: list[Bet]):
-        store_bets(bets)
+        self._bets_storage.store_bets(bets)
             
     def can_draw(self) -> bool:
-        all_clients_reported = self._clients_amount == len(self._agencies)
-        all_clients_done = all(value for value in self._agencies.values())
-
-        logging.debug(f"can_draw({all_clients_reported}, {all_clients_done})")
-
-        return all_clients_reported and all_clients_done
+        return self._agencies.can_draw()
     
     def get_winners(self, agency_id: str) -> list[Winner]:
         winners = []
+        bets = list(self._bets_storage.load_bets())
 
-        for bet in list(load_bets()):
+        for bet in bets:
             if bet.agency == int(agency_id) and has_won(bet):
                 winners.append(Winner(bet.document))
 
