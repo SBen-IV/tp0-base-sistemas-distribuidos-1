@@ -1,3 +1,4 @@
+import logging
 from threading import Lock
 
 
@@ -20,4 +21,9 @@ class SafeAgencies():
 
     def can_draw(self) -> bool:
         with self._lock:
-            return self._agencies_amount == len(self._agencies) and all(v for v in self._agencies.values())
+            are_equal_amount = self._agencies_amount == len(self._agencies)
+            all_agencies_done = all(v for v in self._agencies.values())
+            
+            logging.debug(f"can_draw: {are_equal_amount} and {all_agencies_done}")
+
+            return are_equal_amount and all_agencies_done

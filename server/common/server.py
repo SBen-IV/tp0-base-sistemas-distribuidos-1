@@ -15,9 +15,6 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._server_is_running = True
-        # self._client_socket = None
-        # self._client_handler = None
-        # self._clients_amount = clients_amount
         self._client_manager = ClientManager(clients_amount)
 
         signal.signal(signal.SIGTERM, self.__stop)
@@ -29,8 +26,6 @@ class Server:
         self._server_socket.close()
         
         self._client_manager.stop()
-        # if self._client_handler is not None:
-        #     self._client_handler.stop()
 
     def run(self):
         """
@@ -46,11 +41,9 @@ class Server:
         while self._server_is_running:
             try:
                 # Create a new ClientSocket()
-                # Pass it to a ClientHandler(client_socket)
+                # Pass it to a ClientManager instance
                 client_socket = self.__accept_new_connection()
                 self._client_manager.add_client(ClientSocket(client_socket))
-                # self._client_handler = ClientHandler(ClientSocket(client_socket), NationalLottery(self._clients_amount))
-                # self._client_handler.run()
             except OSError:
                 logging.info("Server socket closed")
                 self._server_is_running = False
