@@ -104,7 +104,7 @@ class ClientHandler():
 
         return bet_info
     
-    def _manage_bets(self, bet_info: BetInfo) -> list[Bet]:
+    def _manage_bets(self, bet_info: BetInfo):
         msg = self._recv_msg(bet_info._bytes_amount)
 
         try:
