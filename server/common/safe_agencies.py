@@ -20,10 +20,13 @@ class SafeAgencies():
             self._agencies[agency_id] = True
 
     def can_draw(self) -> bool:
+        are_equal_amount = False
+        all_agencies_done = False
+
         with self._lock:
             are_equal_amount = self._agencies_amount == len(self._agencies)
             all_agencies_done = all(v for v in self._agencies.values())
             
-            logging.debug(f"can_draw: {are_equal_amount} and {all_agencies_done}")
+        logging.debug(f"can_draw: {are_equal_amount} and {all_agencies_done}")
 
-            return are_equal_amount and all_agencies_done
+        return are_equal_amount and all_agencies_done
