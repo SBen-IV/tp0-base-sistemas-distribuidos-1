@@ -542,7 +542,7 @@ sequenceDiagram
 
 ## Ejercicio 8
 
-Se utilizó la librería `multithreading` de Python para atender a múltiples clientes en paralelo. Para proteger los recursos se usaron `Lock`s de la librería `threading`, encapsulando cada recurso en una clase "safe":
+Se utilizó la librería `threading` de Python para atender a múltiples clientes en paralelo. Para proteger los recursos se usaron `Lock`s de la librería `threading`, encapsulando cada recurso en una clase "safe":
 
 - `BetsStorageSafe`: maneja el acceso (lectura y escritura) al archivo de bets.
 
