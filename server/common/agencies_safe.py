@@ -2,7 +2,7 @@ import logging
 from threading import Lock
 
 
-class SafeAgencies():
+class AgenciesSafe():
     def __init__(self, agencies_amount: int):
         self._agencies = {}
         self._lock = Lock()

@@ -1,7 +1,7 @@
 from model.winner import Winner
 from common.utils import Bet, has_won, load_bets, store_bets
-from common.safe_agencies import SafeAgencies
-from common.store_bets_safe import BetsStorageSafe
+from server.common.agencies_safe import AgenciesSafe
+from server.common.bets_storage_safe import BetsStorageSafe
 
 class SingletonNationalLottery(type):
     _instances = {}
@@ -18,7 +18,7 @@ class NationalLottery(metaclass=SingletonNationalLottery):
     Represents the National Lottery. Handles bets storage and draw.
     """
     def __init__(self, clients_amount: int):
-        self._agencies = SafeAgencies(clients_amount)
+        self._agencies = AgenciesSafe(clients_amount)
         self._bets_storage = BetsStorageSafe()
 
     def add_agency(self, agency_id: str):
