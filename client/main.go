@@ -129,9 +129,9 @@ func main() {
 
 		select {
 		case <-sigs:
-			log.Infof("SIGTERM received")
+			log.Info("SIGTERM received")
 		case <-stop:
-			log.Infof("stop received")
+			log.Info("stop received")
 		}
 
 		client.Stop()
