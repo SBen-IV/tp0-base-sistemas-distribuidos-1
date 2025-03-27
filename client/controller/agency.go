@@ -26,6 +26,20 @@ const (
 
 const EMPTY_BETS = 0
 
+// A bet contains
+// FIRST_NAME;LAST_NAME;DOCUMENT;BIRTHDAY;NUMBER,
+// Suppose the max character amount for each element is:
+// FIRST_NAME = 15
+// LAST_NAME = 15
+// DOCUMENT = 8
+// BIRTHDAY = 10
+// NUMBER = 4
+// SEPARATORS (; y ,) PER BET = 5
+// TOTAL = 57 Bytes per bet
+// MAX BYTES PER BATCH = 8 kB = 8000 bytes
+// 8000 / 57 ~= 140.35 => 140
+const MAX_BATCH_AMOUNT = 140
+
 // This class acts as a controller for communication and model
 type Agency struct {
 	betLoader common.BetLoader
@@ -43,7 +57,7 @@ func NewAgency(betLoader common.BetLoader, client common.Client, config common.C
 		client: client,
 		id: config.ID,
 		stopped: make(chan bool, 1),
-		batchMaxAmount: config.BatchMaxAmount,
+		batchMaxAmount: common.Min(config.BatchMaxAmount, MAX_BATCH_AMOUNT),
 		loopPeriod: config.LoopPeriod,
 	}
 }
