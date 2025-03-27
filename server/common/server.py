@@ -1,13 +1,31 @@
 import socket
 import logging
+import signal
+
+from common.client_handler import ClientHandler
+from common.client_socket import ClientSocket
+from common.national_lottery import NationalLottery
+from common.client_manager import ClientManager
 
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog, clients_amount: int):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._server_is_running = True
+        self._client_manager = ClientManager(clients_amount)
+
+        signal.signal(signal.SIGTERM, self.__stop)
+
+
+    def __stop(self, sig, frame):
+        logging.info("SIGTERM received")
+        self._server_socket.shutdown(socket.SHUT_RDWR)
+        self._server_socket.close()
+        logging.info("Server socket closed")
+
 
     def run(self):
         """
@@ -20,28 +38,15 @@ class Server:
 
         # TODO: Modify this program to handle signal to graceful shutdown
         # the server
-        while True:
-            client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
-
-    def __handle_client_connection(self, client_sock):
-        """
-        Read message from a specific client socket and closes the socket
-
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
-        """
-        try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
-            addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
-        except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
-        finally:
-            client_sock.close()
+        while self._server_is_running:
+            try:
+                # Create a new ClientSocket()
+                # Pass it to a ClientManager instance
+                client_socket = self.__accept_new_connection()
+                self._client_manager.add_client(ClientSocket(client_socket))
+            except OSError:
+                logging.info("Server socket closed")
+                self._server_is_running = False
 
     def __accept_new_connection(self):
         """
@@ -56,3 +61,7 @@ class Server:
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
+
+    def stop(self):
+        self._client_manager.stop()
+        logging.info("Client manager stopped")

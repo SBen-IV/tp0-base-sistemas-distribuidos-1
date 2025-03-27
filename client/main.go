@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/op/go-logging"
@@ -11,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/controller"
 )
 
 var log = logging.MustGetLogger("log")
@@ -37,6 +41,8 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
+	v.BindEnv("bets", "filepath")
+	v.BindEnv("batch", "maxAmount")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -81,12 +87,14 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | batch_max_amount: %v | bets_filepath: %s",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
+		v.GetInt("batch.maxAmount"),
+		v.GetString("bets.filepath"),
 	)
 }
 
@@ -108,8 +116,41 @@ func main() {
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
+		BatchMaxAmount: v.GetInt("batch.maxAmount"),
+		BetsFilePath:  v.GetString("bets.filepath"),
 	}
 
-	client := common.NewClient(clientConfig)
-	client.StartClientLoop()
+	sigs := make(chan os.Signal, 1)
+	stop := make(chan bool, 1)
+	
+	signal.Notify(sigs, syscall.SIGTERM)
+	
+	agency := controller.NewAgency(common.CreateBetLoader(clientConfig.BetsFilePath), common.CreateClient(clientConfig), clientConfig)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	
+	go func() {
+		defer wg.Done()
+
+		select {
+		case <-sigs:
+			log.Info("SIGTERM received")
+		case <-stop:
+			log.Info("stop received")
+		}
+
+		agency.Close()
+	}()
+
+	agency.Run()
+	
+	close(stop)
+
+	wg.Wait()
+
+	close(sigs)
+	
+	log.Info("Client shutdown complete")
 }
